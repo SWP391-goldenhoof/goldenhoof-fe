@@ -168,14 +168,7 @@ export default function RefereeDashboard() {
       title: "Status",
       dataIndex: "status",
       render: (status) => (
-        <Tag
-          color={statusColor(status)}
-          style={{
-            borderRadius: 999,
-            padding: "2px 12px",
-            fontWeight: 600,
-          }}
-        >
+        <Tag color={statusColor(status)}>
           {status}
         </Tag>
       ),
@@ -188,7 +181,10 @@ export default function RefereeDashboard() {
           <Link
             to={`/referee/races/${record._id || record.id}`}
           >
-            <Button className="dashboard-btn">
+            <Button
+              type="primary"
+              className="dashboard-btn"
+            >
               View Details
             </Button>
           </Link>
@@ -201,17 +197,19 @@ export default function RefereeDashboard() {
     <div className="dashboard-page">
       <Space
         direction="vertical"
-
-        size={16}
+        size={28}
         style={{
           width: "100%",
         }}
       >
 
         <Typography.Title
-          level={2}
+          level={1}
           style={{
             marginBottom: 0,
+            color: "#fff",
+            fontWeight: 900,
+            letterSpacing: 1,
           }}
         >
           Referee Dashboard
@@ -231,14 +229,17 @@ export default function RefereeDashboard() {
             marginBottom: 8,
           }}
         >
-          <Row align="middle" gutter={24}>
+          <Row
+            align="middle"
+            gutter={[48, 32]}
+          >
             <Col xs={24} md={16}>
               <div className="dashboard-badge">
                 GOLDEN HOOF RACING SYSTEM
               </div>
 
               <Typography.Title
-                level={2}
+                level={1}
                 className="dashboard-title"
               >
                 Welcome Back,
@@ -260,24 +261,24 @@ export default function RefereeDashboard() {
               <img
                 src="/goldenhoof-hero.png"
                 alt="Golden Hoof"
+                className="transition-all duration-500"
                 style={{
                   width: "100%",
-                  maxHeight: 280,
+                  maxHeight: 320,
                   objectFit: "cover",
-                  borderRadius: 18,
                 }}
               />
             </Col>
           </Row>
         </Card>
 
-        <Row gutter={[16, 16]}>
+        <Row gutter={[24, 24]}>
           <Col xs={24} sm={12} xl={6}>
             <Card
               className="dashboard-stat-card"
               styles={{
                 body: {
-                  padding: 24,
+                  padding: 28,
                 },
               }}
             >
@@ -285,8 +286,9 @@ export default function RefereeDashboard() {
                 title={
                   <span
                     style={{
-                      color:
-                        "rgba(244,255,251,.75)",
+                      color: "#c8e5df",
+                      fontWeight: 600,
+                      fontSize: 15
 
                     }}
                   >
@@ -297,7 +299,7 @@ export default function RefereeDashboard() {
                 valueStyle={{
                   color: "#ffffff",
                   fontWeight: 800,
-                  fontSize: 42,
+                  fontSize: 46,
                 }}
                 prefix={
                   <div className="dashboard-icon">
@@ -313,7 +315,7 @@ export default function RefereeDashboard() {
               className="dashboard-stat-card"
               styles={{
                 body: {
-                  padding: 24,
+                  padding: 28,
                 },
               }}
             >
@@ -321,8 +323,9 @@ export default function RefereeDashboard() {
                 title={
                   <span
                     style={{
-                      color:
-                        "rgba(244,255,251,.75)",
+                      color: "#c8e5df",
+                      fontWeight: 600,
+                      fontSize: 15
 
                     }}
                   >
@@ -333,7 +336,7 @@ export default function RefereeDashboard() {
                 valueStyle={{
                   color: "#ffffff",
                   fontWeight: 800,
-                  fontSize: 42,
+                  fontSize: 46,
                 }}
                 prefix={
                   <div className="dashboard-icon">
@@ -349,7 +352,7 @@ export default function RefereeDashboard() {
               className="dashboard-stat-card"
               styles={{
                 body: {
-                  padding: 24,
+                  padding: 28,
                 },
               }}
             >
@@ -357,8 +360,9 @@ export default function RefereeDashboard() {
                 title={
                   <span
                     style={{
-                      color:
-                        "rgba(244,255,251,.75)",
+                      color: "#c8e5df",
+                      fontWeight: 600,
+                      fontSize: 15
 
                     }}
                   >
@@ -370,7 +374,7 @@ export default function RefereeDashboard() {
                 valueStyle={{
                   color: "#fff",
                   fontWeight: 800,
-                  fontSize: 42,
+                  fontSize: 46,
                 }}
                 prefix={
                   <div className="dashboard-icon">
@@ -386,7 +390,7 @@ export default function RefereeDashboard() {
               className="dashboard-stat-card"
               styles={{
                 body: {
-                  padding: 24,
+                  padding: 28,
                 },
               }}
             >
@@ -394,8 +398,9 @@ export default function RefereeDashboard() {
                 title={
                   <span
                     style={{
-                      color:
-                        "rgba(244,255,251,.75)",
+                      color: "#c8e5df",
+                      fontWeight: 600,
+                      fontSize: 15
 
                     }}
                   >
@@ -407,7 +412,7 @@ export default function RefereeDashboard() {
                 valueStyle={{
                   color: "#fff",
                   fontWeight: 800,
-                  fontSize: 42,
+                  fontSize: 46,
                 }}
                 prefix={
                   <div className="dashboard-icon">
@@ -421,13 +426,16 @@ export default function RefereeDashboard() {
 
         <Card
           className="dashboard-content-card"
-          bodyStyle={{
-            padding: 0,
+          styles={{
+            body: {
+              padding: 0
+            }
           }}
           title={
             <span
               style={{
-                fontSize: 28,
+                fontSize: 30,
+                letterSpacing: .5,
                 fontWeight: 800,
                 color: "#fff",
               }}
@@ -438,8 +446,8 @@ export default function RefereeDashboard() {
           extra={
             <Typography.Text
               style={{
-                color:
-                  "rgba(244,255,251,.6)",
+                color: "#8fd8cf",
+                fontWeight: 500
               }}
             >
               Manage your assigned races
@@ -456,11 +464,13 @@ export default function RefereeDashboard() {
           ) : (
             <Table
               className="dashboard-table"
+              size="large"
               rowKey={(record) => record._id || record.id}
               columns={columns}
               dataSource={races}
               pagination={{
                 pageSize: 5,
+                showSizeChanger: false
               }}
             />
           )}
@@ -480,9 +490,10 @@ export default function RefereeDashboard() {
         >
           <Typography.Paragraph
             style={{
-              color:
-                "rgba(244,255,251,.75)",
-              marginBottom: 0,
+              color: "#d6ece8",
+              fontSize: 16,
+              lineHeight: 1.9,
+              marginBottom: 0
             }}
           >
             Review your assigned races,

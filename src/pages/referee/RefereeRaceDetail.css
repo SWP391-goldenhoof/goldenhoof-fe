@@ -1,0 +1,815 @@
+/* ======================================================
+   PAGE
+====================================================== */
+
+.race-detail-page {
+
+    min-height: 100vh;
+
+    padding: 32px;
+
+    background:
+        radial-gradient(circle at top right,
+            rgba(46, 196, 182, .16),
+            transparent 35%),
+
+        radial-gradient(circle at bottom left,
+            rgba(11, 110, 79, .18),
+            transparent 40%),
+
+        linear-gradient(135deg,
+            #052e28 0%,
+            #0b3d37 55%,
+            #0f5048 100%);
+}
+
+/* ======================================================
+   HERO
+====================================================== */
+
+.race-detail-hero {
+
+    position: relative;
+
+    overflow: hidden;
+
+    border-radius: 28px !important;
+
+    background:
+        linear-gradient(145deg,
+            rgba(11, 61, 55, .98),
+            rgba(15, 80, 72, .95)) !important;
+
+    border:
+        1px solid rgba(46, 196, 182, .14);
+
+    box-shadow:
+        0 22px 50px rgba(0, 0, 0, .35);
+
+    transition: .4s;
+}
+
+.race-detail-hero:hover {
+
+    transform: translateY(-4px);
+
+    box-shadow:
+        0 28px 65px rgba(0, 0, 0, .45);
+}
+
+.race-detail-hero::before {
+
+    content: "";
+
+    position: absolute;
+
+    right: -120px;
+
+    top: -120px;
+
+    width: 320px;
+
+    height: 320px;
+
+    border-radius: 50%;
+
+    background: #2EC4B6;
+
+    opacity: .16;
+
+    filter: blur(90px);
+}
+
+/* ======================================================
+   HERO TEXT
+====================================================== */
+
+.race-detail-title {
+
+    color: white !important;
+
+    font-size: 46px !important;
+
+    font-weight: 900 !important;
+
+    margin-bottom: 4px !important;
+
+    letter-spacing: .8px;
+}
+
+.race-detail-subtitle {
+
+    color: #d7ece8 !important;
+
+    font-size: 17px;
+
+    margin-bottom: 22px !important;
+}
+
+.race-detail-description {
+
+    color: #d7ece8 !important;
+
+    font-size: 16px;
+
+    line-height: 1.9;
+
+    margin-top: 20px !important;
+}
+
+/* ======================================================
+   HERO IMAGE
+====================================================== */
+
+.race-detail-image {
+
+    width: 100%;
+
+    border-radius: 24px;
+
+    transition: .45s;
+
+    box-shadow:
+        0 18px 40px rgba(0, 0, 0, .35);
+}
+
+.race-detail-image:hover {
+
+    transform:
+        scale(1.04) rotate(.6deg);
+}
+
+/* ======================================================
+   CARD
+====================================================== */
+
+.race-detail-card {
+
+    overflow: hidden;
+
+    border-radius: 24px !important;
+
+    background:
+        rgba(11, 61, 55, .86) !important;
+
+    backdrop-filter: blur(14px);
+
+    border:
+        1px solid rgba(46, 196, 182, .10);
+
+    box-shadow:
+        0 15px 35px rgba(0, 0, 0, .28);
+
+    transition: .35s;
+}
+
+.race-detail-card:hover {
+
+    transform: translateY(-5px);
+
+    box-shadow:
+        0 20px 45px rgba(46, 196, 182, .14);
+}
+
+/* ======================================================
+   SECTION TITLE
+====================================================== */
+
+.race-section-title {
+
+    color: white;
+
+    font-size: 24px;
+
+    font-weight: 800;
+
+    letter-spacing: .5px;
+}
+
+/* ======================================================
+   BUTTON
+====================================================== */
+
+.race-detail-btn {
+    border: none !important;
+    border-radius: 12px !important;
+    height: 42px;
+    padding: 0 22px !important;
+
+    background: linear-gradient(135deg,
+            #19d89d,
+            #11c5b7) !important;
+
+    color: white !important;
+    font-weight: 600;
+
+    box-shadow:
+        0 8px 22px rgba(25, 216, 157, .25);
+
+    transition:
+        transform .25s,
+        box-shadow .25s,
+        filter .25s,
+        opacity .25s;
+}
+
+.race-detail-btn:not(:disabled):hover {
+    transform: translateY(-2px);
+
+    filter: brightness(1.12);
+
+    box-shadow:
+        0 12px 28px rgba(25, 216, 157, .45);
+}
+
+.race-detail-btn:not(:disabled):active {
+    transform: scale(.97);
+}
+
+.race-detail-btn:disabled,
+.race-detail-btn.ant-btn-disabled {
+    background:
+        linear-gradient(135deg,
+            #35424a,
+            #29343b) !important;
+
+    color: rgba(255, 255, 255, .45) !important;
+
+    box-shadow: none !important;
+
+    opacity: .65;
+
+    cursor: not-allowed;
+
+    transform: none !important;
+}
+
+.race-detail-btn:disabled:hover,
+.race-detail-btn.ant-btn-disabled:hover {
+    background:
+        linear-gradient(135deg,
+            #35424a,
+            #29343b) !important;
+
+    transform: none;
+
+    filter: none;
+
+    box-shadow: none;
+}
+
+.race-detail-btn.ant-btn-loading {
+    filter: brightness(1.05);
+}
+
+/* ======================================================
+   STATISTIC CARD
+====================================================== */
+
+.race-stat-card {
+
+    overflow: hidden;
+
+    border-radius: 22px !important;
+
+    background:
+        linear-gradient(145deg,
+            #0b3d37,
+            #104941) !important;
+
+    border:
+        1px solid rgba(46, 196, 182, .12);
+
+    transition: .35s;
+
+    box-shadow:
+        0 12px 24px rgba(0, 0, 0, .24);
+}
+
+.race-stat-card:hover {
+
+    transform: translateY(-8px);
+
+    box-shadow:
+        0 24px 45px rgba(46, 196, 182, .16);
+}
+
+.race-stat-title {
+
+    color: #d8ece8;
+
+    font-size: 15px;
+
+    font-weight: 600;
+}
+
+.race-stat-value {
+
+    color: white !important;
+
+    font-size: 44px !important;
+
+    font-weight: 900 !important;
+}
+
+/* ======================================================
+   DESCRIPTIONS
+====================================================== */
+
+.race-description .ant-descriptions-view {
+
+    border-radius: 18px;
+
+    overflow: hidden;
+
+    border: 1px solid rgba(46, 196, 182, .08);
+}
+
+.race-description .ant-descriptions-row {
+    background: transparent;
+}
+
+.race-description .ant-descriptions-item-label {
+
+    background:
+        rgba(46, 196, 182, .08) !important;
+
+    color: #67f7df !important;
+    font-weight: 700;
+}
+
+.race-description .ant-descriptions-item-content {
+
+    background: transparent !important;
+
+    color: #fff !important;
+}
+
+.race-description .ant-descriptions-bordered .ant-descriptions-item {
+
+    border-color:
+        rgba(255, 255, 255, .06);
+}
+
+/* ======================================================
+   DESCRIPTIONS
+====================================================== */
+
+.race-description .ant-descriptions-view {
+
+    border-radius: 18px;
+
+    overflow: hidden;
+
+    border: 1px solid rgba(46, 196, 182, .08);
+}
+
+.race-description .ant-descriptions-row {
+
+    background: transparent;
+}
+
+.race-description .ant-descriptions-item-label {
+
+    background:
+        rgba(46, 196, 182, .08) !important;
+
+    color: #7BE8DC !important;
+
+    font-weight: 700;
+}
+
+.race-description .ant-descriptions-item-content {
+
+    background: transparent !important;
+
+    color: white !important;
+}
+
+.race-description .ant-descriptions-bordered .ant-descriptions-item {
+
+    border-color:
+        rgba(255, 255, 255, .06);
+}
+
+/* ======================================================
+   TAG
+====================================================== */
+
+.ant-tag {
+
+    border: none !important;
+
+    border-radius: 999px !important;
+
+    padding: 4px 14px;
+
+    font-weight: 700;
+
+    letter-spacing: .3px;
+}
+
+/* ======================================================
+   FORM
+====================================================== */
+
+.ant-form-item-label>label {
+
+    color: white !important;
+
+    font-weight: 600;
+}
+
+.ant-input {
+
+    background: #08352f !important;
+
+    border:
+        1px solid rgba(46, 196, 182, .15);
+
+    color: white !important;
+
+    border-radius: 12px;
+}
+
+.ant-input:focus {
+
+    border-color: #2EC4B6 !important;
+
+    box-shadow:
+        0 0 0 2px rgba(46, 196, 182, .18);
+}
+
+.ant-select-selector {
+
+    background: #08352f !important;
+
+    color: white !important;
+
+    border-radius: 12px !important;
+
+    border:
+        1px solid rgba(46, 196, 182, .15) !important;
+}
+
+.ant-select-selection-item {
+
+    color: white !important;
+}
+
+/* ======================================================
+   INPUT NUMBER
+====================================================== */
+
+.ant-input-number {
+
+    width: 100%;
+
+    background: #08352f !important;
+
+    border-radius: 12px;
+
+    border:
+        1px solid rgba(46, 196, 182, .15);
+}
+
+.ant-input-number-input {
+
+    color: white !important;
+}
+
+.ant-input-number-group-addon {
+
+    background: #08352f !important;
+
+    color: white !important;
+
+    border:
+        1px solid rgba(46, 196, 182, .15);
+}
+
+/* ======================================================
+   SELECT
+====================================================== */
+
+.dark-select {
+
+    background: #08352f;
+}
+
+.dark-select .ant-select-item {
+
+    color: white;
+}
+
+.dark-select .ant-select-item-option-active {
+
+    background: #0f5048;
+}
+
+.dark-select .ant-select-item-option-selected {
+
+    background: #0B6E4F;
+
+    color: white;
+}
+
+/* ======================================================
+   TIMELINE
+====================================================== */
+
+.race-timeline .ant-timeline-item-content {
+
+    color: white !important;
+
+    font-size: 15px;
+}
+
+.race-timeline .ant-timeline-item-tail {
+
+    border-color:
+        rgba(46, 196, 182, .3);
+}
+
+.race-timeline .ant-timeline-item-head {
+
+    box-shadow:
+        0 0 12px rgba(46, 196, 182, .35);
+}
+
+/* ======================================================
+   MODAL
+====================================================== */
+
+.ant-modal-content {
+
+    background: #0B3D37 !important;
+
+    border-radius: 22px;
+}
+
+.ant-modal-header {
+
+    background: #0B3D37 !important;
+
+    border-bottom:
+        1px solid rgba(255, 255, 255, .06);
+}
+
+.ant-modal-title {
+
+    color: white !important;
+}
+
+.ant-modal-close {
+
+    color: white !important;
+}
+
+.ant-modal-body {
+
+    color: white;
+}
+
+/* ======================================================
+   SPIN
+====================================================== */
+
+.ant-spin {
+
+    color: #2EC4B6;
+}
+
+/* ======================================================
+   EMPTY
+====================================================== */
+
+.ant-empty-description {
+
+    color: white !important;
+}
+
+/* ======================================================
+   CARD HEADER
+====================================================== */
+
+.ant-card {
+
+    border: none;
+}
+
+.ant-card-head {
+
+    border-bottom:
+        1px solid rgba(255, 255, 255, .06);
+}
+
+.ant-card-head-title {
+
+    color: white !important;
+}
+
+/* ======================================================
+   SCROLLBAR
+====================================================== */
+
+::-webkit-scrollbar {
+
+    width: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+
+    background: #2EC4B6;
+
+    border-radius: 20px;
+}
+
+::-webkit-scrollbar-track {
+
+    background: #08352f;
+}
+
+/* ======================================================
+   ANIMATION
+====================================================== */
+
+@keyframes fadeUp {
+
+    from {
+
+        opacity: 0;
+
+        transform:
+            translateY(24px);
+    }
+
+    to {
+
+        opacity: 1;
+
+        transform:
+            translateY(0);
+    }
+}
+
+.race-detail-card,
+.race-stat-card,
+.race-detail-hero {
+
+    animation:
+        fadeUp .45s ease;
+}
+
+/* ======================================================
+   RESPONSIVE
+====================================================== */
+
+@media (max-width:992px) {
+
+    .race-detail-page {
+
+        padding: 20px;
+    }
+
+    .race-detail-title {
+
+        font-size: 36px !important;
+    }
+}
+
+@media (max-width:768px) {
+
+    .race-detail-title {
+
+        font-size: 30px !important;
+    }
+
+    .race-section-title {
+
+        font-size: 20px;
+    }
+
+    .race-detail-btn {
+
+        width: 100%;
+    }
+}
+
+.btn-ready {
+    background: linear-gradient(135deg, #16c784, #13b672) !important;
+}
+
+.btn-simulation {
+    background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
+}
+
+.btn-broadcast {
+    background: linear-gradient(135deg, #ef4444, #dc2626) !important;
+}
+
+/* ===========================
+   PARTICIPANT TABLE
+=========================== */
+
+.race-table {
+    background: transparent;
+}
+
+.race-table .ant-table {
+    background: transparent;
+}
+
+.race-table .ant-table-container {
+    border-radius: 18px;
+    overflow: hidden;
+    border: 1px solid rgba(94, 248, 216, .12);
+}
+
+.race-table .ant-table-thead>tr>th {
+    background: rgba(94, 248, 216, .08);
+    color: #6ef7da;
+    font-weight: 700;
+    border-bottom: 1px solid rgba(94, 248, 216, .12);
+}
+
+.race-table .ant-table-tbody>tr>td {
+    background: transparent;
+    color: white;
+    border-bottom: 1px solid rgba(255, 255, 255, .05);
+}
+
+.race-table .ant-table-tbody>tr:hover>td {
+    background: rgba(94, 248, 216, .06) !important;
+}
+
+.race-table .ant-empty-description {
+    color: rgba(255, 255, 255, .7);
+}
+
+.race-link-btn {
+    padding: 0 !important;
+    color: #5ef8d8 !important;
+    font-weight: 600;
+}
+
+.race-link-btn:hover {
+    color: #89ffe8 !important;
+}
+
+.race-status-tag {
+    border-radius: 999px;
+    font-weight: 600;
+    padding: 2px 10px;
+}
+
+.race-gate {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #10b981, #06b6d4);
+    color: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: 700;
+    margin: auto;
+    box-shadow: 0 0 12px rgba(16, 185, 129, .4);
+}
+
+.race-white-text {
+    color: #ffffff !important;
+}
+
+.race-sub-text {
+    color: rgba(255, 255, 255, .7) !important;
+}
+
+.race-stat-title {
+    color: rgba(255, 255, 255, .75);
+    font-weight: 600;
+}
+
+.race-stat-value .ant-statistic-content {
+    color: #fff !important;
+}
+
+.race-stat-value .ant-statistic-content-value {
+    color: #fff !important;
+}
+
+.race-stat-value .ant-statistic-content-value-int {
+    color: #fff !important;
+}
+
+.race-stat-value .ant-statistic-content-value-decimal {
+    color: #fff !important;
+}
+
+.race-review-title {
+    color: #fff !important;
+}
+
+.race-review-description {
+    color: rgba(255, 255, 255, .72) !important;
+}

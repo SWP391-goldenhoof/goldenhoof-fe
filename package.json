@@ -6,6 +6,7 @@
   },
   "dependencies": {
     "@ant-design/icons": "^6.2.5",
+    "@tailwindcss/vite": "^4.3.2",
     "@vitejs/plugin-react": "latest",
     "antd": "^6.4.3",
     "axios": "^1.16.1",
@@ -14,6 +15,7 @@
     "react-dom": "latest",
     "react-router-dom": "^7.15.1",
     "socket.io-client": "^4.7.2",
+    "tailwindcss": "^4.3.2",
     "vite": "latest"
   }
 }
