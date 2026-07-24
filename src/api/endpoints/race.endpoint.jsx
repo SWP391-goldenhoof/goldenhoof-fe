@@ -1,4 +1,6 @@
 export const RACE_ENDPOINTS = {
+  ADMIN_DASHBOARD_STATS: "/races/admin/dashboard/stats",
+
   MY_RACES: "/races/my-races",
 
   BATCH: "/races/batch",

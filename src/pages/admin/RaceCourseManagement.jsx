@@ -14,13 +14,9 @@ import {
   Typography,
   message,
 } from "antd";
-import {
-  DeleteOutlined,
-  EditOutlined,
-  EyeOutlined,
-  PlusOutlined,
-} from "@ant-design/icons";
 import "antd/dist/reset.css";
+import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
 import {
   createRaceCourse,
   deleteRaceCourse,
@@ -28,6 +24,9 @@ import {
   getRaceCourses,
   updateRaceCourse,
 } from "../../api/services/race-course.service";
+import { useAdminTableFixedColumns } from "../../hooks/useAdminTableFixedColumns";
+
+dayjs.extend(utc);
 
 const { Text, Title } = Typography;
 
@@ -43,15 +42,10 @@ function resolveList(response) {
 
 function formatDate(value) {
   if (!value) return "N/A";
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-
-  return new Intl.DateTimeFormat("vi-VN", {
-    dateStyle: "short",
-    timeStyle: "short",
-  }).format(date);
+  const date = dayjs.utc(value);
+  return date.isValid() ? date.format("HH:mm DD/MM/YYYY") : value;
 }
+
 
 function getTimeValue(value) {
   if (!value) return 0;
@@ -65,7 +59,9 @@ function normalizeTrackType(value) {
   const normalizedValue = String(value || "").toLowerCase();
 
   return (
-    TRACK_TYPES.find((trackType) => trackType.toLowerCase() === normalizedValue) ||
+    TRACK_TYPES.find(
+      (trackType) => trackType.toLowerCase() === normalizedValue,
+    ) ||
     value ||
     "N/A"
   );
@@ -99,6 +95,7 @@ function RaceCourseManagement() {
   const [detailCourse, setDetailCourse] = useState(null);
   const [editingCourse, setEditingCourse] = useState(null);
   const [isCourseModalOpen, setIsCourseModalOpen] = useState(false);
+  const shouldFixColumns = useAdminTableFixedColumns();
 
   async function loadRaceCourses() {
     setIsLoading(true);
@@ -198,7 +195,7 @@ function RaceCourseManagement() {
       {
         title: "Race Course",
         dataIndex: "name",
-        fixed: "left",
+        fixed: shouldFixColumns ? "left" : undefined,
         width: 260,
         render: (value) => <Text strong>{value}</Text>,
       },
@@ -225,30 +222,34 @@ function RaceCourseManagement() {
         width: 420,
         ellipsis: true,
       },
-      {
-        title: "Created At",
-        dataIndex: "createdAt",
-        width: 180,
-        render: formatDate,
-      },
+      // {
+      //   title: "Created At",
+      //   dataIndex: "createdAt",
+      //   width: 180,
+      //   render: formatDate,
+      // },
       {
         title: "Actions",
         key: "actions",
-        fixed: "right",
-        width: 180,
+        fixed: shouldFixColumns ? "right" : undefined,
+        width: 280,
         render: (_, record) => (
           <Space>
             <Button
-              type="text"
-              icon={<EyeOutlined />}
+              className="race-course-management-link-btn"
+              size="small"
               onClick={() => openDetailModal(record)}
-            />
+            >
+              Detail
+            </Button>
 
             <Button
-              type="text"
-              icon={<EditOutlined />}
+              className="race-course-management-link-btn"
+              size="small"
               onClick={() => openEditModal(record)}
-            />
+            >
+              Edit
+            </Button>
 
             <Popconfirm
               title="Delete race course?"
@@ -258,13 +259,15 @@ function RaceCourseManagement() {
               okButtonProps={{ danger: true, loading: isSaving }}
               onConfirm={() => handleDeleteCourse(record)}
             >
-              <Button type="text" danger icon={<DeleteOutlined />} />
+              <Button size="small" danger>
+                Delete
+              </Button>
             </Popconfirm>
           </Space>
         ),
       },
     ],
-    [isSaving],
+    [isSaving, shouldFixColumns],
   );
 
   return (
@@ -315,6 +318,12 @@ function RaceCourseManagement() {
           border-color: #bdeee5;
           color: #006755;
           font-weight: 850;
+          background: #fff;
+        }
+
+        .race-course-management-link-btn.ant-btn:hover {
+          border-color: #69f8dd !important;
+          color: #006755 !important;
         }
 
         .race-course-management-primary.ant-btn {
@@ -349,7 +358,6 @@ function RaceCourseManagement() {
 
           <Button
             className="race-course-management-primary"
-            icon={<PlusOutlined />}
             onClick={openCreateModal}
           >
             Create Race Course
@@ -441,7 +449,12 @@ function RaceCourseManagement() {
       >
         {detailCourse && (
           <Descriptions bordered column={1} size="middle">
-            <Descriptions.Item label="Name">{detailCourse.name}</Descriptions.Item>
+            <Descriptions.Item label="ID">
+              <Text code>{detailCourse.id}</Text>
+            </Descriptions.Item>
+            <Descriptions.Item label="Name">
+              {detailCourse.name}
+            </Descriptions.Item>
             <Descriptions.Item label="Location">
               {detailCourse.location}
             </Descriptions.Item>

@@ -1,5 +1,6 @@
 export const HORSE_ENDPOINTS = {
   ROOT: "/horses",
+  ADMIN_DASHBOARD_STATS: "/horses/admin/dashboard/stats",
 
   DETAIL: (id) => `/horses/${id}`,
 

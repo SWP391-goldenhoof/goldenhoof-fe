@@ -94,7 +94,6 @@
   background: #ef4444;
 }
 
-.broadcast-controls,
 .broadcast-card {
   border: 1px solid rgb(148 163 184 / 18%);
   border-radius: 18px;
@@ -104,11 +103,10 @@
 }
 
 .broadcast-controls {
-  display: grid;
-  grid-template-columns: minmax(240px, 1fr) auto auto;
-  gap: 14px;
-  align-items: end;
-  padding: 18px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 0;
   margin-bottom: 18px;
 }
 
@@ -214,8 +212,15 @@
 }
 
 .channel-back-link {
-  grid-column: 1 / -1;
   width: max-content;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  padding: 0 15px;
+  border: 1px solid #bfece5;
+  border-radius: 7px;
+  background: #69f8dd;
   color: #e9ad55;
   font-size: 13px;
   font-weight: 750;
@@ -224,6 +229,21 @@
 
 .channel-back-link:hover {
   color: #ffd18c;
+}
+
+.broadcast-page button.replay-action {
+  border-color: transparent;
+  color: #06332e;
+  background: #69f8dd;
+}
+
+.replay-status {
+  display: flex;
+  justify-content: flex-end;
+  margin: -8px 0 18px;
+  color: #007a68;
+  font-size: 13px;
+  font-weight: 800;
 }
 
 .joined-race {
@@ -621,7 +641,6 @@
   background: #fff5f4;
 }
 
-.broadcast-controls,
 .broadcast-card {
   border-color: #cdeee8;
   background: #fff;
@@ -782,10 +801,6 @@
     grid-template-columns: 1fr;
   }
 
-  .broadcast-controls {
-    grid-template-columns: 1fr 1fr;
-  }
-
   .broadcast-controls .race-field {
     grid-column: 1;
   }
@@ -798,10 +813,6 @@
 
   .broadcast-header {
     flex-direction: column;
-  }
-
-  .broadcast-controls {
-    grid-template-columns: 1fr;
   }
 
   .broadcast-controls .race-field {

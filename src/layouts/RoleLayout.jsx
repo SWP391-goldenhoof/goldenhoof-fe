@@ -1,5 +1,5 @@
 import { Avatar, Button, ConfigProvider, Layout, Menu, Space, Tooltip, Typography } from "antd";
-import { LogoutOutlined } from "@ant-design/icons";
+import { LogoutOutlined, MenuOutlined } from "@ant-design/icons";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { getProfile } from "../api/services/auth.service";
@@ -15,6 +15,7 @@ export default function RoleLayout({ role, title, subtitle, navItems }) {
     const [user, setUser] = useState(
         () => session?.user || { fullName: role || "GoldenHoof User", role },
     );
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const displayName =
         user?.fullName ||
         user?.name ||
@@ -66,11 +67,21 @@ export default function RoleLayout({ role, title, subtitle, navItems }) {
         navigate("/login", { replace: true });
     }
 
+    function closeMobileMenu() {
+        setIsMobileMenuOpen(false);
+    }
+
     return (
         <ConfigProvider theme={actionTheme}>
             <Layout
-                className={`role-layout${isOwnerRole ? " owner-role-layout" : ""}${isJockeyRole ? " jockey-role-layout" : ""}`}
+                className={`role-layout${isOwnerRole ? " owner-role-layout" : ""}${isJockeyRole ? " jockey-role-layout" : ""}${isMobileMenuOpen ? " role-layout-menu-open" : ""}`}
             >
+                <button
+                    className="role-mobile-backdrop"
+                    type="button"
+                    aria-label="Close navigation"
+                    onClick={closeMobileMenu}
+                />
                 <Sider width={250} className="role-sider">
                     <div className="role-sider-inner">
                         <div className="role-brand">
@@ -85,7 +96,15 @@ export default function RoleLayout({ role, title, subtitle, navItems }) {
                                 className="role-menu"
                                 items={navItems.map((item) => ({
                                     key: item.key,
-                                    label: <NavLink className="role-link" to={item.to}>{item.label}</NavLink>,
+                                    label: (
+                                        <NavLink
+                                            className="role-link"
+                                            to={item.to}
+                                            onClick={closeMobileMenu}
+                                        >
+                                            {item.label}
+                                        </NavLink>
+                                    ),
                                 }))}
                             />
                         </div>
@@ -122,6 +141,13 @@ export default function RoleLayout({ role, title, subtitle, navItems }) {
 
                 <Layout>
                     <Header className="role-header">
+                        <Button
+                            className="role-mobile-menu-btn"
+                            type="text"
+                            icon={<MenuOutlined />}
+                            aria-label="Open navigation"
+                            onClick={() => setIsMobileMenuOpen(true)}
+                        />
                         <Space orientation="vertical" size={0}>
                             <Typography.Text type="secondary">{subtitle}</Typography.Text>
                             <Typography.Title level={4} className="role-title">

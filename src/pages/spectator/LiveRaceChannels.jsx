@@ -1,8 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
+import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
 import { getRacesByTournament } from "../../api/services/race.service";
 import { getTournaments } from "../../api/services/tournament.service";
 import "./LiveRaceChannels.css";
+
+dayjs.extend(utc);
 
 function resolveList(response) {
   if (Array.isArray(response)) return response;
@@ -102,16 +106,8 @@ function isFinished(status) {
 
 function formatStartTime(value) {
   if (!value) return "Live Now";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return String(value);
-
-  return new Intl.DateTimeFormat("vi-VN", {
-    hour: "2-digit",
-    minute: "2-digit",
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  }).format(date);
+  const date = dayjs.utc(value);
+  return date.isValid() ? date.format("HH:mm DD/MM/YYYY") : String(value);
 }
 
 function RaceChannelCard({ race, index, replay = false }) {
@@ -143,7 +139,9 @@ function RaceChannelCard({ race, index, replay = false }) {
         </div>
         <Link
           className="watch-channel-button"
-          to={`/spectator/broadcast/${encodeURIComponent(race.id)}`}
+          to={`/spectator/${replay ? "replay" : "broadcast"}/${encodeURIComponent(
+            race.id,
+          )}`}
         >
           {replay ? "Watch replay" : "Watch live"}
           <span aria-hidden="true">→</span>

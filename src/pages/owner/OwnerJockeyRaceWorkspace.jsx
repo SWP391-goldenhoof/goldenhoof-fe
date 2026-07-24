@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
+import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
 import {
   Alert,
   Avatar,
@@ -41,6 +43,9 @@ import {
 } from "../../api/services/user.service";
 import { cancelContract } from "../../api/services/contract.service";
 import JockeyContractModal from "../../components/contracts/JockeyContractModal";
+import WorkspaceHeader from "../../components/ui/WorkspaceHeader";
+
+dayjs.extend(utc);
 
 const contractColor = {
   ACTIVE: "green",
@@ -250,18 +255,8 @@ function formatMeasurement(value, unit) {
 
 function formatDateTime(value) {
   if (!value) return "N/A";
-
-  const parsed = new Date(value);
-
-  if (Number.isNaN(parsed.getTime())) return String(value);
-
-  return parsed.toLocaleString("vi-VN", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  const date = dayjs.utc(value);
+  return date.isValid() ? date.format("HH:mm DD/MM/YYYY") : String(value);
 }
 
 export default function OwnerJockeyRaceWorkspace() {
@@ -576,8 +571,9 @@ export default function OwnerJockeyRaceWorkspace() {
       render: (_, record) => (
         <Button
           size="small"
-          disabled={!isAcceptedInvitation(record)}
-          loading={contractLoadingId === record.id}
+          disabled={
+            !isAcceptedInvitation(record) || contractLoadingId === record.id
+          }
           onClick={() => openInvitationContract(record)}
         >
           Contract
@@ -694,6 +690,12 @@ export default function OwnerJockeyRaceWorkspace() {
   return (
     <Space direction="vertical" size={16} className="owner-page-stack">
       {contextHolder}
+      <WorkspaceHeader
+        kicker="JOCKEY & ENTRIES"
+        title="Jockey & Entries"
+        subtitle="Invite jockeys, manage contracts, and confirm race entries"
+      />
+
       {errorMessage && <Alert type="warning" showIcon message={errorMessage} />}
       {invitationErrorMessage && (
         <Alert type="warning" showIcon message={invitationErrorMessage} />

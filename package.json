@@ -10,6 +10,8 @@
     "@vitejs/plugin-react": "latest",
     "antd": "^6.4.3",
     "axios": "^1.16.1",
+    "dayjs": "^1.11.21",
+    "html2pdf.js": "^0.14.0",
     "jwt-decode": "^4.0.0",
     "react": "latest",
     "react-dom": "latest",

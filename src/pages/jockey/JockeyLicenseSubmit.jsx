@@ -35,8 +35,9 @@ import {
   updateJockeyLicense,
   uploadJockeyLicenseFile,
 } from "../../api/services/jockeyLicense.service";
+import WorkspaceHeader from "../../components/ui/WorkspaceHeader";
 
-const { Paragraph, Text, Title } = Typography;
+const { Text, Title } = Typography;
 
 function getUploadedUrl(data) {
   return data?.licenseUrl || data?.imageUrl || data?.url || data?.path || data;
@@ -255,15 +256,13 @@ export default function JockeyLicenseSubmit() {
     <Space direction="vertical" size={16} className="owner-page-stack">
       {contextHolder}
 
-      <Card>
-        <Title level={3} style={{ marginTop: 0 }}>
-          Submit jockey license
-        </Title>
-        <Paragraph type="secondary">
-          Add your racing license details and upload a license image before
-          submitting it for review.
-        </Paragraph>
+      <WorkspaceHeader
+        kicker="LICENSE CENTER"
+        title="Submit Jockey License"
+        subtitle="Add racing license details and upload documents for review"
+      />
 
+      <Card>
         <Form
           form={form}
           layout="vertical"

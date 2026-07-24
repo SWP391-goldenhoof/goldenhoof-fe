@@ -2,7 +2,7 @@
    PAGE
 ====================================================== */
 
-.dashboard-page {
+.referee-dashboard-page.dashboard-page {
     min-height: 100vh;
     padding: 32px;
 
@@ -24,7 +24,7 @@
    HERO
 ====================================================== */
 
-.dashboard-hero {
+.referee-dashboard-page .dashboard-hero {
     position: relative;
     overflow: hidden;
 
@@ -43,13 +43,13 @@
     transition: .4s;
 }
 
-.dashboard-hero:hover {
+.referee-dashboard-page .dashboard-hero:hover {
     transform: translateY(-4px);
     box-shadow:
         0 28px 60px rgba(0, 0, 0, .45);
 }
 
-.dashboard-hero::before {
+.referee-dashboard-page .dashboard-hero::before {
 
     content: "";
 
@@ -70,7 +70,7 @@
     filter: blur(90px);
 }
 
-.dashboard-badge {
+.referee-dashboard-page .dashboard-badge {
 
     display: inline-block;
 
@@ -91,7 +91,7 @@
     margin-bottom: 20px;
 }
 
-.dashboard-title {
+.referee-dashboard-page .dashboard-title {
 
     color: white !important;
 
@@ -102,12 +102,12 @@
     margin-bottom: 12px !important;
 }
 
-.dashboard-title-highlight {
+.referee-dashboard-page .dashboard-title-highlight {
 
     color: #2EC4B6;
 }
 
-.dashboard-subtitle {
+.referee-dashboard-page .dashboard-subtitle {
 
     color: #d6ece8 !important;
 
@@ -121,7 +121,7 @@
    IMAGE
 ====================================================== */
 
-.dashboard-hero img {
+.referee-dashboard-page .dashboard-hero img {
 
     border-radius: 24px;
 
@@ -131,7 +131,7 @@
         0 20px 40px rgba(0, 0, 0, .35);
 }
 
-.dashboard-hero img:hover {
+.referee-dashboard-page .dashboard-hero img:hover {
 
     transform:
         scale(1.04) rotate(.5deg);
@@ -142,7 +142,7 @@
    STAT CARD
 ====================================================== */
 
-.dashboard-stat-card {
+.referee-dashboard-page .dashboard-stat-card {
 
     border-radius: 24px !important;
 
@@ -161,7 +161,7 @@
         0 12px 24px rgba(0, 0, 0, .25);
 }
 
-.dashboard-stat-card:hover {
+.referee-dashboard-page .dashboard-stat-card:hover {
 
     transform: translateY(-8px);
 
@@ -169,7 +169,7 @@
         0 22px 45px rgba(46, 196, 182, .18);
 }
 
-.dashboard-icon {
+.referee-dashboard-page .dashboard-icon {
 
     width: 60px;
 
@@ -201,7 +201,7 @@
    CONTENT CARD
 ====================================================== */
 
-.dashboard-content-card {
+.referee-dashboard-page .dashboard-content-card {
 
     border-radius: 24px !important;
 
@@ -223,19 +223,19 @@
    TABLE
 ====================================================== */
 
-.dashboard-table .ant-table {
+.referee-dashboard-page .dashboard-table .ant-table {
 
     background: transparent;
 
     color: white;
 }
 
-.dashboard-table .ant-table-container {
+.referee-dashboard-page .dashboard-table .ant-table-container {
 
     background: transparent;
 }
 
-.dashboard-table .ant-table-thead>tr>th {
+.referee-dashboard-page .dashboard-table .ant-table-thead>tr>th {
 
     background: #0b3d37 !important;
 
@@ -248,7 +248,7 @@
     border-bottom: none;
 }
 
-.dashboard-table .ant-table-tbody>tr>td {
+.referee-dashboard-page .dashboard-table .ant-table-tbody>tr>td {
 
     background: transparent !important;
 
@@ -257,17 +257,17 @@
     border-color: rgba(255, 255, 255, .06);
 }
 
-.dashboard-table .ant-table-tbody>tr:hover>td {
+.referee-dashboard-page .dashboard-table .ant-table-tbody>tr:hover>td {
 
     background: #135248 !important;
 }
 
-.dashboard-table .ant-pagination-item {
+.referee-dashboard-page .dashboard-table .ant-pagination-item {
 
     background: #0b3d37;
 }
 
-.dashboard-table .ant-pagination-item a {
+.referee-dashboard-page .dashboard-table .ant-pagination-item a {
 
     color: white;
 }
@@ -277,7 +277,7 @@
    BUTTON
 ====================================================== */
 
-.dashboard-btn {
+.referee-dashboard-page .dashboard-btn {
 
     height: 42px;
 
@@ -299,7 +299,7 @@
     transition: .35s;
 }
 
-.dashboard-btn:hover {
+.referee-dashboard-page .dashboard-btn:hover {
 
     color: white !important;
 
@@ -315,7 +315,7 @@
    TAG
 ====================================================== */
 
-.ant-tag {
+.referee-dashboard-page .ant-tag {
 
     border: none !important;
 
@@ -331,18 +331,18 @@
    ANT CARD
 ====================================================== */
 
-.ant-card {
+.referee-dashboard-page .ant-card {
 
     border: none;
 }
 
-.ant-card-head {
+.referee-dashboard-page .ant-card-head {
 
     border-bottom:
         1px solid rgba(255, 255, 255, .05);
 }
 
-.ant-card-head-title {
+.referee-dashboard-page .ant-card-head-title {
 
     color: white !important;
 }
@@ -352,19 +352,20 @@
    SCROLLBAR
 ====================================================== */
 
-::-webkit-scrollbar {
+.referee-dashboard-page::-webkit-scrollbar {
 
     width: 8px;
 }
 
-::-webkit-scrollbar-thumb {
+.referee-dashboard-page::-webkit-scrollbar-thumb {
 
     background: #2EC4B6;
 
     border-radius: 20px;
 }
 
-::-webkit-scrollbar-track {
+.referee-dashboard-page::-webkit-scrollbar-track {
 
     background: #08352f;
 }
+

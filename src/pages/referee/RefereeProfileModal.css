@@ -1,0 +1,288 @@
+/* ======================================================
+   PROFILE MODAL
+====================================================== */
+.referee-profile-modal .ant-modal-content {
+    background:
+        linear-gradient(145deg,
+            #0b3d37,
+            #104941);
+    border-radius: 24px;
+    border: 1px solid rgba(46, 196, 182, .15);
+    overflow: hidden;
+    box-shadow:
+        0 25px 60px rgba(0, 0, 0, .45);
+}
+
+/* ======================================================
+   HEADER
+====================================================== */
+.referee-profile-modal .ant-modal-header {
+    background:
+        linear-gradient(135deg,
+            #0d6258,
+            #168174);
+    border-bottom:
+        1px solid rgba(46, 196, 182, .18);
+    padding: 22px 28px;
+}
+
+.referee-profile-modal .ant-modal-title {
+    color: white !important;
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: .5px;
+}
+
+.referee-profile-modal .ant-modal-close {
+    color: white;
+}
+
+.referee-profile-modal .ant-modal-close:hover {
+    background:
+        rgba(255, 255, 255, .08);
+    color: #2ec4b6;
+}
+
+/* ======================================================
+   BODY
+====================================================== */
+.referee-profile-modal .ant-modal-body {
+    padding: 32px;
+    background: transparent;
+    max-height: 75vh;
+    overflow-y: auto;
+    color: white;
+}
+
+/* ======================================================
+   HERO CARD
+====================================================== */
+.profile-hero-card {
+    background:
+        linear-gradient(145deg,
+            rgba(22, 96, 88, .92),
+            rgba(18, 78, 72, .92)) !important;
+    border-radius: 24px !important;
+    border:
+        1px solid rgba(46, 196, 182, .15);
+    margin-bottom: 30px;
+    transition: .3s;
+    overflow: hidden;
+}
+
+.profile-hero-card:hover {
+    transform: translateY(-4px);
+    box-shadow:
+        0 20px 40px rgba(0, 0, 0, .28);
+}
+
+/* ======================================================
+   AVATAR
+====================================================== */
+.profile-avatar {
+    border: 4px solid #2ec4b6;
+    box-shadow:
+        0 0 0 6px rgba(46, 196, 182, .12),
+        0 15px 35px rgba(0, 0, 0, .28);
+}
+
+/* ======================================================
+   NAME
+====================================================== */
+.profile-name {
+    color: white !important;
+    margin-bottom: 6px !important;
+    font-size: 34px !important;
+    font-weight: 800 !important;
+}
+
+.profile-subtitle {
+    display: block;
+    color: #a6e9de;
+    font-size: 15px;
+    margin-bottom: 16px;
+}
+
+.profile-id {
+    display: block;
+    color: #6fe9db;
+    font-size: 13px;
+    margin-bottom: 18px;
+}
+
+/* ======================================================
+   TAG
+====================================================== */
+.role-tag {
+    border: none !important;
+    border-radius: 999px;
+    padding: 5px 16px;
+    font-weight: 700;
+    background: #14695d !important;
+    color: white !important;
+}
+
+.status-tag {
+    border: none !important;
+    border-radius: 999px;
+    font-weight: 700;
+}
+
+/* ======================================================
+   DIVIDER
+====================================================== */
+.profile-divider {
+    border-color:
+        rgba(255, 255, 255, .08) !important;
+}
+
+/* ======================================================
+   STATISTIC
+====================================================== */
+.profile-statistic {
+    background:
+        rgba(255, 255, 255, .04);
+    border-radius: 18px;
+    padding: 18px;
+    transition: .25s;
+    text-align: center;
+}
+
+.profile-statistic:hover {
+    background:
+        rgba(46, 196, 182, .10);
+    transform: translateY(-3px);
+}
+
+.profile-statistic .ant-statistic-title {
+    color: #a7ddd5 !important;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.profile-statistic .ant-statistic-content {
+    color: white !important;
+    font-weight: 800;
+    font-size: 28px;
+}
+
+/* ======================================================
+   INFO CARD
+====================================================== */
+.profile-info-card {
+    background:
+        linear-gradient(145deg,
+            rgba(19, 88, 80, .96),
+            rgba(15, 73, 67, .96)) !important;
+    border-radius: 22px !important;
+    border:
+        1px solid rgba(46, 196, 182, .12);
+    transition: .3s;
+}
+
+.profile-info-card:hover {
+    transform: translateY(-3px);
+    box-shadow:
+        0 15px 35px rgba(0, 0, 0, .25);
+}
+
+/* ======================================================
+   CARD TITLE
+====================================================== */
+.profile-info-card .ant-card-head {
+    background:
+        rgba(255, 255, 255, .03);
+    border-bottom:
+        1px solid rgba(46, 196, 182, .10);
+}
+
+.profile-info-card .ant-card-head-title {
+    color: white;
+    font-size: 18px;
+    font-weight: 700;
+}
+
+.profile-info-card .ant-card-body {
+    background: transparent;
+}
+
+/* ======================================================
+   DESCRIPTION
+====================================================== */
+.profile-description .ant-descriptions-view {
+    border-radius: 16px;
+    overflow: hidden;
+}
+
+.profile-description .ant-descriptions-item-label {
+    background: #0c544b !important;
+    color: #71ecdc !important;
+    font-weight: 700;
+}
+
+.profile-description .ant-descriptions-item-content {
+    background: #14564d !important;
+    color: white !important;
+}
+
+/* ======================================================
+   EMPTY
+====================================================== */
+.referee-profile-modal .ant-empty-description {
+    color: white !important;
+}
+
+/* ======================================================
+   SPIN
+====================================================== */
+.profile-loading {
+    text-align: center;
+    padding: 90px 0;
+}
+
+.profile-loading p {
+    margin-top: 18px;
+    color: #9de0d7;
+    font-size: 15px;
+}
+
+/* ======================================================
+   RESPONSIVE
+====================================================== */
+@media(max-width:768px) {
+    .referee-profile-modal .ant-modal {
+        max-width: 95vw;
+    }
+
+    .referee-profile-modal .ant-modal-body {
+        padding: 20px;
+    }
+
+    .profile-avatar {
+        width: 120px !important;
+        height: 120px !important;
+        line-height: 120px !important;
+    }
+
+    .profile-name {
+        font-size: 28px !important;
+        text-align: center;
+    }
+
+    .profile-subtitle {
+        text-align: center;
+    }
+
+    .profile-id {
+        text-align: center;
+    }
+
+    .profile-hero-card .ant-row {
+        text-align: center;
+        justify-content: center;
+    }
+
+    .profile-statistic {
+        margin-bottom: 16px;
+    }
+}

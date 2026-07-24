@@ -6,6 +6,7 @@ import {
   Form,
   Input,
   Modal,
+  Segmented,
   Select,
   Space,
   Table,
@@ -13,13 +14,6 @@ import {
   Typography,
   message,
 } from "antd";
-import {
-  EyeOutlined,
-  FieldTimeOutlined,
-  FlagOutlined,
-  PlusOutlined,
-  TeamOutlined,
-} from "@ant-design/icons";
 import dayjs from "dayjs";
 import "antd/dist/reset.css";
 import {
@@ -36,10 +30,10 @@ import {
   getRaceCourses,
 } from "../../api/services/race-course.service";
 import { getTournaments } from "../../api/services/tournament.service";
-import {
-  getUserById,
-  getUsersByRole,
-} from "../../api/services/user.service";
+import { getUserById, getUsersByRole } from "../../api/services/user.service";
+import { useAdminTableFixedColumns } from "../../hooks/useAdminTableFixedColumns";
+import utc from "dayjs/plugin/utc";
+dayjs.extend(utc);
 
 const { Title, Text } = Typography;
 
@@ -76,13 +70,7 @@ function unwrapEntity(response) {
 }
 
 function getPersonName(item) {
-  return (
-    item?.fullName ||
-    item?.name ||
-    item?.username ||
-    item?.email ||
-    ""
-  );
+  return item?.fullName || item?.name || item?.username || item?.email || "";
 }
 
 function getRaceCourseName(item) {
@@ -101,25 +89,31 @@ function getRaceCourseName(item) {
 
 function formatDate(value) {
   if (!value) return "N/A";
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-
-  return new Intl.DateTimeFormat("vi-VN", {
-    dateStyle: "short",
-  }).format(date);
+  const date = dayjs.utc(value);
+  return date.isValid() ? date.format("DD/MM/YYYY") : value;
 }
+
+// function formatDateTime(value) {
+//   if (!value) return "N/A";
+
+//   const date = new Date(value);
+//   if (Number.isNaN(date.getTime())) return value;
+
+//   return new Intl.DateTimeFormat("vi-VN", {
+//     dateStyle: "short",
+//     timeStyle: "short",
+//   }).format(date);
+// }
 
 function formatDateTime(value) {
   if (!value) return "N/A";
 
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
+  const d = dayjs(value);
+  if (!d.isValid()) return value;
 
-  return new Intl.DateTimeFormat("vi-VN", {
-    dateStyle: "short",
-    timeStyle: "short",
-  }).format(date);
+  // Sử dụng định dạng giữ nguyên hiển thị theo chuỗi ISO gốc hoặc format thủ công
+  // Để hiển thị dạng DD/MM/YYYY HH:mm đúng chuẩn vi-VN mà không bị lệch múi giờ:
+  return dayjs.utc(value).format("DD/MM/YYYY HH:mm");
 }
 
 function normalizeTimeInput(value = "") {
@@ -244,7 +238,9 @@ async function resolveParticipant(participant, index) {
   return {
     key: `${participant?.gateNumber ?? index}-${horseId}-${jockeyId}`,
     gateNumber: participant?.gateNumber ?? "N/A",
+    horseId: horseId || "N/A",
     horseName: horse?.name || "N/A",
+    jockeyId: jockeyId || "N/A",
     jockeyName: getPersonName(jockey) || "N/A",
   };
 }
@@ -266,7 +262,20 @@ function normalizeTournamentOption(item, index) {
   return {
     label: title,
     value: id,
+    startDate: item?.startDate || "",
+    endDate: item?.endDate || "",
   };
+}
+
+function parseTournamentDate(value) {
+  if (!value) return null;
+
+  const slashDate = String(value).match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  const parsed = slashDate
+    ? dayjs(`${slashDate[3]}-${slashDate[2]}-${slashDate[1]}`)
+    : dayjs(value);
+
+  return parsed.isValid() ? parsed.startOf("day") : null;
 }
 
 function RaceManagement() {
@@ -275,6 +284,8 @@ function RaceManagement() {
   const [round2Form] = Form.useForm();
   const [refereeForm] = Form.useForm();
   const [raceCourseForm] = Form.useForm();
+  const batchTournamentId = Form.useWatch("tournamentId", batchForm);
+  const round2TournamentId = Form.useWatch("tournamentId", round2Form);
 
   const [races, setRaces] = useState([]);
   const [referees, setReferees] = useState([]);
@@ -287,8 +298,10 @@ function RaceManagement() {
   const [detailRace, setDetailRace] = useState(null);
   const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
   const [isRound2ModalOpen, setIsRound2ModalOpen] = useState(false);
+  const [batchRaceCount, setBatchRaceCount] = useState(1);
   const [assigningRefereeRace, setAssigningRefereeRace] = useState(null);
   const [assigningCourseRace, setAssigningCourseRace] = useState(null);
+  const shouldFixColumns = useAdminTableFixedColumns();
 
   async function loadReferees() {
     try {
@@ -414,6 +427,7 @@ function RaceManagement() {
 
   function openBatchModal() {
     const tournamentId = searchForm.getFieldValue("tournamentId") || "";
+    const suggestedDate = getTournamentDate(tournamentId, "startDate");
 
     batchForm.resetFields();
     batchForm.setFieldsValue({
@@ -421,25 +435,110 @@ function RaceManagement() {
       races: [
         {
           name: "Vong 1 - Race 1",
-          date: null,
-          startTime: "",
-        },
-        {
-          name: "Vong 1 - Race 2",
-          date: null,
-          startTime: "",
+          date: suggestedDate,
+          startTime: "08:00",
         },
       ],
     });
+    setBatchRaceCount(1);
     setIsBatchModalOpen(true);
   }
 
+  function handleBatchRaceCountChange(count) {
+    const currentRaces = batchForm.getFieldValue("races") || [];
+    const firstRace = currentRaces[0] || {
+      name: "Vong 1 - Race 1",
+      date: getTournamentDate(batchTournamentId, "startDate"),
+      startTime: "08:00",
+    };
+
+    batchForm.setFieldValue(
+      "races",
+      count === 1
+        ? [firstRace]
+        : [
+            firstRace,
+            currentRaces[1] || {
+              name: "Vong 1 - Race 2",
+              date:
+                firstRace.date ||
+                getTournamentDate(batchTournamentId, "startDate"),
+              startTime: "08:00",
+            },
+          ],
+    );
+    setBatchRaceCount(count);
+  }
+
+  function getTournamentDate(tournamentId, field) {
+    const tournament = tournaments.find(
+      (option) => option.value === tournamentId,
+    );
+
+    return parseTournamentDate(tournament?.[field]);
+  }
+
+  function isOutsideTournament(date, tournamentId) {
+    const startDate = getTournamentDate(tournamentId, "startDate");
+    const endDate = getTournamentDate(tournamentId, "endDate");
+
+    if (!date || !startDate || !endDate) return false;
+    return date.isBefore(startDate, "day") || date.isAfter(endDate, "day");
+  }
+
+  function getTournamentPeriodText(tournamentId) {
+    const startDate = getTournamentDate(tournamentId, "startDate");
+    const endDate = getTournamentDate(tournamentId, "endDate");
+
+    if (!startDate || !endDate) {
+      return "Tournament period is unavailable";
+    }
+
+    return `Tournament period: ${startDate.format("DD/MM/YYYY")} - ${endDate.format("DD/MM/YYYY")}`;
+  }
+
+  function renderTournamentPeriodHint(tournamentId) {
+    const startDate = getTournamentDate(tournamentId, "startDate");
+    const endDate = getTournamentDate(tournamentId, "endDate");
+
+    return (
+      <div className="race-tournament-period">
+        <span className="race-tournament-period-label">Tournament time</span>
+        <span className="race-tournament-period-range">
+          {startDate && endDate
+            ? `${startDate.format("DD/MM/YYYY")} - ${endDate.format("DD/MM/YYYY")}`
+            : "Select a tournament to see its date range"}
+        </span>
+        <Text type="secondary" className="race-tournament-period-note">
+          Race date should stay inside this tournament period to avoid backend
+          validation errors.
+        </Text>
+      </div>
+    );
+  }
+
+  function applyBatchTournamentDefaults(tournamentId) {
+    const suggestedDate = getTournamentDate(tournamentId, "startDate");
+    const races = batchForm.getFieldValue("races") || [];
+
+    batchForm.setFieldValue(
+      "races",
+      races.map((race, index) => ({
+        ...race,
+        name: race?.name || `Vong 1 - Race ${index + 1}`,
+        date: suggestedDate,
+        startTime: race?.startTime || "08:00",
+      })),
+    );
+  }
+
   function openRound2Modal() {
+    const tournamentId = searchForm.getFieldValue("tournamentId") || "";
     round2Form.resetFields();
     round2Form.setFieldsValue({
-      tournamentId: searchForm.getFieldValue("tournamentId") || "",
-      date: null,
-      startTime: "",
+      tournamentId,
+      date: getTournamentDate(tournamentId, "endDate"),
+      startTime: "08:00",
     });
     setIsRound2ModalOpen(true);
   }
@@ -494,7 +593,10 @@ function RaceManagement() {
       setIsBatchModalOpen(false);
       batchForm.resetFields();
       searchForm.setFieldsValue({ tournamentId: payload.tournamentId });
-      await loadRacesFor(payload.tournamentId, searchForm.getFieldValue("status"));
+      await loadRacesFor(
+        payload.tournamentId,
+        searchForm.getFieldValue("status"),
+      );
     } catch (error) {
       message.error(error?.message || "Unable to create races");
     } finally {
@@ -517,7 +619,10 @@ function RaceManagement() {
       setIsRound2ModalOpen(false);
       round2Form.resetFields();
       searchForm.setFieldsValue({ tournamentId: values.tournamentId });
-      await loadRacesFor(values.tournamentId, searchForm.getFieldValue("status"));
+      await loadRacesFor(
+        values.tournamentId,
+        searchForm.getFieldValue("status"),
+      );
     } catch (error) {
       message.error(error?.message || "Unable to create round 2 race");
     } finally {
@@ -569,9 +674,7 @@ function RaceManagement() {
 
   function getRaceCourseDisplayName(record) {
     return (
-      record.raceCourseName ||
-      raceCoursesById[record.raceCourseId] ||
-      "N/A"
+      record.raceCourseName || raceCoursesById[record.raceCourseId] || "N/A"
     );
   }
 
@@ -590,7 +693,7 @@ function RaceManagement() {
       {
         title: "Race",
         dataIndex: "name",
-        fixed: "left",
+        fixed: shouldFixColumns ? "left" : undefined,
         width: 220,
         render: (value) => <Text strong>{value}</Text>,
       },
@@ -652,33 +755,38 @@ function RaceManagement() {
       {
         title: "Actions",
         key: "actions",
-        fixed: "right",
-        width: 260,
+        fixed: shouldFixColumns ? "right" : undefined,
+        width: 430,
         render: (_, record) => (
           <Space>
             <Button
-              type="text"
-              icon={<EyeOutlined />}
+              className="race-management-link-btn"
+              size="small"
               onClick={() => openDetailModal(record)}
-            />
+            >
+              Detail
+            </Button>
 
             <Button
-              type="text"
-              icon={<TeamOutlined />}
+              className="race-management-link-btn"
+              size="small"
               onClick={() => openAssignRefereeModal(record)}
-            />
+            >
+              Assign Referee
+            </Button>
 
             <Button
-              type="text"
-              icon={<FlagOutlined />}
+              className="race-management-link-btn"
+              size="small"
               onClick={() => openAssignRaceCourseModal(record)}
-            />
-
+            >
+              Assign Course
+            </Button>
           </Space>
         ),
       },
     ],
-    [raceCoursesById, referees],
+    [raceCoursesById, referees, shouldFixColumns],
   );
 
   return (
@@ -840,6 +948,21 @@ function RaceManagement() {
           gap: 16px;
         }
 
+        .race-batch-mode {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 16px;
+          margin-bottom: 18px;
+          padding-bottom: 16px;
+          border-bottom: 1px solid #dff3ee;
+        }
+
+        .race-batch-mode-label {
+          color: #06332e;
+          font-weight: 900;
+        }
+
         .race-batch-panel {
           padding: 18px;
           border: 1px solid #ccefe7;
@@ -868,6 +991,35 @@ function RaceManagement() {
           font-size: 13px;
         }
 
+        .race-tournament-period {
+          margin: -6px 0 18px;
+          padding: 12px 14px;
+          border: 1px solid #ccefe7;
+          border-radius: 8px;
+          background: #f7fffd;
+        }
+
+        .race-tournament-period-label {
+          display: block;
+          color: #007a68;
+          font-size: 12px;
+          font-weight: 950;
+          text-transform: uppercase;
+        }
+
+        .race-tournament-period-range {
+          display: block;
+          margin-top: 3px;
+          color: #06332e;
+          font-size: 16px;
+          font-weight: 950;
+        }
+
+        .race-tournament-period-note {
+          display: block;
+          margin-top: 5px;
+        }
+
         @media (max-width: 920px) {
           .race-management-header,
           .race-management-toolbar {
@@ -891,6 +1043,11 @@ function RaceManagement() {
           .race-batch-grid {
             grid-template-columns: 1fr;
           }
+
+          .race-batch-mode {
+            align-items: flex-start;
+            flex-direction: column;
+          }
         }
       `}</style>
 
@@ -910,10 +1067,9 @@ function RaceManagement() {
 
           <Button
             className="race-management-primary"
-            icon={<PlusOutlined />}
             onClick={openBatchModal}
           >
-            Create Round 1 Batch
+            Create Round 1 Races
           </Button>
         </section>
 
@@ -925,7 +1081,6 @@ function RaceManagement() {
 
           <Button
             className="race-management-link-btn"
-            icon={<FieldTimeOutlined />}
             onClick={openRound2Modal}
           >
             Create Final Race
@@ -1015,9 +1170,9 @@ function RaceManagement() {
       </section>
 
       <Modal
-        title="Create Round 1 Batch"
+        title="Create Round 1 Races"
         open={isBatchModalOpen}
-        okText="Create 2 Races"
+        okText={`Create ${batchRaceCount} Race${batchRaceCount > 1 ? "s" : ""}`}
         cancelText="Cancel"
         width={960}
         confirmLoading={isSaving}
@@ -1036,8 +1191,23 @@ function RaceManagement() {
               placeholder="Select tournament"
               optionFilterProp="label"
               options={tournaments}
+              onChange={applyBatchTournamentDefaults}
             />
           </Form.Item>
+
+          {renderTournamentPeriodHint(batchTournamentId)}
+
+          <div className="race-batch-mode">
+            <span className="race-batch-mode-label">Number of races</span>
+            <Segmented
+              value={batchRaceCount}
+              options={[
+                { label: "1 Race", value: 1 },
+                { label: "2 Races", value: 2 },
+              ]}
+              onChange={handleBatchRaceCountChange}
+            />
+          </div>
 
           <Form.List name="races">
             {(fields) => (
@@ -1062,12 +1232,16 @@ function RaceManagement() {
                       {...restField}
                       label="Date"
                       name={[name, "date"]}
+                      extra={getTournamentPeriodText(batchTournamentId)}
                       rules={[{ required: true, message: "Date is required" }]}
                     >
                       <DatePicker
                         format="DD/MM/YYYY"
                         placeholder="DD/MM/YYYY"
                         style={{ width: "100%" }}
+                        disabledDate={(date) =>
+                          isOutsideTournament(date, batchTournamentId)
+                        }
                       />
                     </Form.Item>
 
@@ -1109,18 +1283,30 @@ function RaceManagement() {
               placeholder="Select tournament"
               optionFilterProp="label"
               options={tournaments}
+              onChange={(tournamentId) =>
+                round2Form.setFieldsValue({
+                  date: getTournamentDate(tournamentId, "endDate"),
+                  startTime: round2Form.getFieldValue("startTime") || "08:00",
+                })
+              }
             />
           </Form.Item>
+
+          {renderTournamentPeriodHint(round2TournamentId)}
 
           <Form.Item
             label="Date"
             name="date"
+            extra={getTournamentPeriodText(round2TournamentId)}
             rules={[{ required: true, message: "Date is required" }]}
           >
             <DatePicker
               format="DD/MM/YYYY"
               placeholder="DD/MM/YYYY"
               style={{ width: "100%" }}
+              disabledDate={(date) =>
+                isOutsideTournament(date, round2TournamentId)
+              }
             />
           </Form.Item>
 
@@ -1194,85 +1380,107 @@ function RaceManagement() {
       >
         {detailRace && (
           <Space direction="vertical" size="large" style={{ width: "100%" }}>
-          <Descriptions bordered column={1} size="middle">
-            <Descriptions.Item label="Name">
-              {detailRace.name}
-            </Descriptions.Item>
-            <Descriptions.Item label="Tournament">
-              {detailRace.tournamentTitle}
-            </Descriptions.Item>
-            <Descriptions.Item label="Round">
-              {detailRace.roundNumber}
-            </Descriptions.Item>
-            <Descriptions.Item label="Race Order">
-              {detailRace.raceOrder}
-            </Descriptions.Item>
-            <Descriptions.Item label="Date">
-              {formatDate(detailRace.date)}
-            </Descriptions.Item>
-            <Descriptions.Item label="Start Time">
-              {formatDateTime(detailRace.startTime)}
-            </Descriptions.Item>
-            <Descriptions.Item label="Status">
-              <Tag color={statusColor(detailRace.status)}>
-                {detailRace.status}
-              </Tag>
-            </Descriptions.Item>
-            <Descriptions.Item label="Referee">
-              {getRefereeDisplayName(detailRace)}
-            </Descriptions.Item>
-            <Descriptions.Item label="Race Course">
-              {getRaceCourseDisplayName(detailRace)}
-            </Descriptions.Item>
-            <Descriptions.Item label="Total Bettors">
-              {detailRace.totalBettors}
-            </Descriptions.Item>
-            <Descriptions.Item label="Slots">
-              {detailRace.filledSlots ?? "N/A"} /{" "}
-              {detailRace.totalSlots ?? "N/A"}
-            </Descriptions.Item>
-            <Descriptions.Item label="Available Slots">
-              {detailRace.availableSlots ?? "N/A"}
-            </Descriptions.Item>
-            <Descriptions.Item label="Horses">
-              {detailRace.participants.length}
-            </Descriptions.Item>
-            <Descriptions.Item label="Referee Confirmed At">
-              {formatDateTime(detailRace.refereeConfirmedAt)}
-            </Descriptions.Item>
-            <Descriptions.Item label="Simulated At">
-              {formatDateTime(detailRace.simulatedAt)}
-            </Descriptions.Item>
-            <Descriptions.Item label="Created At">
-              {formatDateTime(detailRace.createdAt)}
-            </Descriptions.Item>
-          </Descriptions>
+            <Descriptions bordered column={1} size="middle">
+              <Descriptions.Item label="ID">{detailRace.id}</Descriptions.Item>
+              <Descriptions.Item label="Name">
+                {detailRace.name}
+              </Descriptions.Item>
+              <Descriptions.Item label="Tournament">
+                {detailRace.tournamentTitle}
+              </Descriptions.Item>
+              <Descriptions.Item label="Tournament ID">
+                <Text code>{detailRace.tournamentId || "N/A"}</Text>
+              </Descriptions.Item>
+              <Descriptions.Item label="Round">
+                {detailRace.roundNumber}
+              </Descriptions.Item>
+              <Descriptions.Item label="Race Order">
+                {detailRace.raceOrder}
+              </Descriptions.Item>
+              <Descriptions.Item label="Date">
+                {formatDate(detailRace.date)}
+              </Descriptions.Item>
+              <Descriptions.Item label="Start Time">
+                {formatDateTime(detailRace.startTime)}
+              </Descriptions.Item>
+              <Descriptions.Item label="Status">
+                <Tag color={statusColor(detailRace.status)}>
+                  {detailRace.status}
+                </Tag>
+              </Descriptions.Item>
+              <Descriptions.Item label="Referee">
+                {getRefereeDisplayName(detailRace)}
+              </Descriptions.Item>
+              <Descriptions.Item label="Referee ID">
+                <Text code>{detailRace.refereeId || "N/A"}</Text>
+              </Descriptions.Item>
+              <Descriptions.Item label="Race Course">
+                {getRaceCourseDisplayName(detailRace)}
+              </Descriptions.Item>
+              <Descriptions.Item label="Race Course ID">
+                <Text code>{detailRace.raceCourseId || "N/A"}</Text>
+              </Descriptions.Item>
+              <Descriptions.Item label="Total Bettors">
+                {detailRace.totalBettors}
+              </Descriptions.Item>
+              <Descriptions.Item label="Slots">
+                {detailRace.filledSlots ?? "N/A"} /{" "}
+                {detailRace.totalSlots ?? "N/A"}
+              </Descriptions.Item>
+              <Descriptions.Item label="Available Slots">
+                {detailRace.availableSlots ?? "N/A"}
+              </Descriptions.Item>
+              <Descriptions.Item label="Horses">
+                {detailRace.participants.length}
+              </Descriptions.Item>
+              <Descriptions.Item label="Referee Confirmed At">
+                {formatDateTime(detailRace.refereeConfirmedAt)}
+              </Descriptions.Item>
+              <Descriptions.Item label="Simulated At">
+                {formatDateTime(detailRace.simulatedAt)}
+              </Descriptions.Item>
+              <Descriptions.Item label="Created At">
+                {formatDateTime(detailRace.createdAt)}
+              </Descriptions.Item>
+            </Descriptions>
 
-          <Table
-            rowKey="key"
-            size="small"
-            pagination={false}
-            dataSource={detailRace.participants}
-            locale={{ emptyText: "No participants in this race" }}
-            columns={[
-              {
-                title: "Gate",
-                dataIndex: "gateNumber",
-                width: 100,
-                sorter: (a, b) => Number(a.gateNumber) - Number(b.gateNumber),
-                defaultSortOrder: "ascend",
-              },
-              {
-                title: "Horse",
-                dataIndex: "horseName",
-                render: (value) => <Text strong>{value}</Text>,
-              },
-              {
-                title: "Jockey",
-                dataIndex: "jockeyName",
-              },
-            ]}
-          />
+            <Table
+              rowKey="key"
+              size="small"
+              pagination={false}
+              dataSource={detailRace.participants}
+              locale={{ emptyText: "No participants in this race" }}
+              columns={[
+                {
+                  title: "Gate",
+                  dataIndex: "gateNumber",
+                  width: 100,
+                  sorter: (a, b) => Number(a.gateNumber) - Number(b.gateNumber),
+                  defaultSortOrder: "ascend",
+                },
+                {
+                  title: "Horse",
+                  dataIndex: "horseName",
+                  render: (value) => <Text strong>{value}</Text>,
+                },
+                {
+                  title: "Horse ID",
+                  dataIndex: "horseId",
+                  width: 190,
+                  render: (value) => <Text code>{value}</Text>,
+                },
+                {
+                  title: "Jockey",
+                  dataIndex: "jockeyName",
+                },
+                {
+                  title: "Jockey ID",
+                  dataIndex: "jockeyId",
+                  width: 190,
+                  render: (value) => <Text code>{value}</Text>,
+                },
+              ]}
+            />
           </Space>
         )}
       </Modal>

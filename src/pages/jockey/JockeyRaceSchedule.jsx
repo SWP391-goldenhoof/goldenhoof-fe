@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
+import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
 import {
   Alert,
   Button,
@@ -17,6 +19,9 @@ import {
 import { getJockeyProfile, getJockeyRaceSchedule } from "../../api/services/jockey.service";
 import { getTournamentById } from "../../api/services/tournament.service";
 import RaceHistoryCard from "../../components/races/RaceHistoryCard";
+import WorkspaceHeader from "../../components/ui/WorkspaceHeader";
+
+dayjs.extend(utc);
 
 function shouldShowRaceSubtitle(value) {
   const text = String(value || "").trim();
@@ -44,11 +49,7 @@ function formatScheduleTime(record) {
   const parsedDate = hasDate ? new Date(date) : null;
 
   if (parsedDate && !Number.isNaN(parsedDate.getTime())) {
-    const formattedDate = parsedDate.toLocaleDateString("vi-VN", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-    });
+    const formattedDate = dayjs.utc(date).format("DD/MM/YYYY");
 
     return hasTime ? `${formattedDate} ${time}` : formattedDate;
   }
@@ -57,13 +58,7 @@ function formatScheduleTime(record) {
   const parsedDateTime = rawDateTime ? new Date(rawDateTime) : null;
 
   if (parsedDateTime && !Number.isNaN(parsedDateTime.getTime())) {
-    return parsedDateTime.toLocaleString("vi-VN", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+    return dayjs.utc(rawDateTime).format("HH:mm DD/MM/YYYY");
   }
 
   return rawDateTime || "N/A";
@@ -71,18 +66,8 @@ function formatScheduleTime(record) {
 
 function formatDateTime(value) {
   if (!value) return "N/A";
-
-  const parsed = new Date(value);
-
-  if (Number.isNaN(parsed.getTime())) return String(value);
-
-  return parsed.toLocaleString("vi-VN", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  const date = dayjs.utc(value);
+  return date.isValid() ? date.format("HH:mm DD/MM/YYYY") : String(value);
 }
 
 function getTournamentTitle(tournament) {
@@ -235,6 +220,12 @@ export default function JockeyRaceSchedule() {
 
   return (
     <Space direction="vertical" size={16} style={{ width: "100%" }}>
+      <WorkspaceHeader
+        kicker="RACE SCHEDULE"
+        title="Race Schedule"
+        subtitle="Review assigned races, finishes, and recent performance"
+      />
+
       {errorMessage && <Alert type="warning" showIcon message={errorMessage} />}
 
       <Row gutter={[16, 16]}>

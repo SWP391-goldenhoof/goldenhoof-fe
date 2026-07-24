@@ -20,8 +20,6 @@ import "./RefereeResultReviewModal.css";
 
 import {
     CheckCircleOutlined,
-    FileDoneOutlined,
-    FileTextOutlined,
     TrophyOutlined,
 } from "@ant-design/icons";
 
@@ -30,8 +28,6 @@ const { Title, Text } = Typography;
 export default function RefereeResultReviewModal({
     open,
     onClose,
-
-    participants,
 
     rawResults,
     rawColumns,
@@ -45,7 +41,7 @@ export default function RefereeResultReviewModal({
     confirmLoading,
     hasFinalResult,
 
-    handleSubmitFinalReview,
+    handleSubmitReport,
     handleConfirmFinalResult,
 
     selectedRawResultIds,
@@ -55,21 +51,12 @@ export default function RefereeResultReviewModal({
     setReportReason,
 }) {
 
-    const horseMap = Object.fromEntries(
-        participants.map(item => [
-            item.horse.horseId,
-            item.horse.name,
-        ])
-    );
+    const reportLocked =
+        !!report;
 
-    const reviewLocked =
+    const finalLocked =
         hasFinalResult;
 
-    const reportIds = Array.isArray(report?.rawResultId)
-        ? report.rawResultId
-        : report?.rawResultId
-            ? report.rawResultId.split(",")
-            : [];
     return (
 
 
@@ -88,11 +75,13 @@ export default function RefereeResultReviewModal({
             }}
             centered
             title={
-                <div div >
+                <div>
+
                     <Title
+                        className="review-title"
                         level={3}
                         style={{
-                            color: "#fff",
+                            color: "#0f172a",
                             marginBottom: 6
                         }}
                     >
@@ -100,9 +89,8 @@ export default function RefereeResultReviewModal({
                     </Title>
 
                     <Text
-                        style={{
-                            color: "#9ca3af"
-                        }}>
+                        className="review-subtitle"
+                    >
                         Review race rankings, referee reports and
                         confirm the official race results.
                     </Text>
@@ -131,6 +119,7 @@ export default function RefereeResultReviewModal({
                                 }}
                             >
                                 <Alert
+                                    className="review-alert"
                                     showIcon
                                     type="warning"
                                     style={{
@@ -143,7 +132,7 @@ export default function RefereeResultReviewModal({
                                     className="review-section-card"
                                 >
                                     <Table
-                                        className="review-table"
+                                        className="review-table review-raw-table"
                                         scroll={{
                                             x: "max-content"
                                         }}
@@ -163,7 +152,13 @@ export default function RefereeResultReviewModal({
                                         style={{ marginTop: 24 }}
                                     >
 
-                                        <Text strong>
+                                        <Text
+                                            strong
+                                            style={{
+                                                color: "#ffffff",
+                                                fontSize: 15,
+                                            }}
+                                        >
                                             Reason
                                         </Text>
 
@@ -173,7 +168,7 @@ export default function RefereeResultReviewModal({
                                             style={{
                                                 marginTop: 10,
                                             }}
-                                            disabled={reviewLocked}
+                                            disabled={reportLocked}
                                             placeholder="Enter violation reason (optional)"
                                             value={reportReason}
                                             onChange={(e) =>
@@ -195,17 +190,33 @@ export default function RefereeResultReviewModal({
                                                 textAlign: "right",
                                             }}
                                         >
-                                            <Button
-                                                className="review-button"
-                                                type="primary"
-                                                size="large"
-                                                icon={<FileDoneOutlined />}
-                                                loading={reportLoading}
-                                                disabled={reviewLocked}
-                                                onClick={handleSubmitFinalReview}
-                                            >
-                                                Create End Report
-                                            </Button>
+                                            <Space>
+
+                                                <Button
+                                                    className="review-button"
+                                                    type="primary"
+                                                    size="large"
+                                                    icon={<CheckCircleOutlined />}
+                                                    loading={reportLoading}
+                                                    disabled={reportLocked}
+                                                    onClick={handleSubmitReport}
+                                                >
+                                                    Submit Report
+                                                </Button>
+
+                                                <Button
+                                                    className="review-button"
+                                                    type="primary"
+                                                    size="large"
+                                                    icon={<CheckCircleOutlined />}
+                                                    loading={confirmLoading}
+                                                    disabled={finalLocked}
+                                                    onClick={handleConfirmFinalResult}
+                                                >
+                                                    Confirm Final Result
+                                                </Button>
+
+                                            </Space>
                                         </div>
                                     </div>
                                 </Card>
@@ -232,6 +243,7 @@ export default function RefereeResultReviewModal({
                                 }}
                             >
                                 <Alert
+                                    className="review-alert"
                                     showIcon
                                     type={hasFinalResult ? "success" : "info"}
                                     message={
@@ -297,7 +309,7 @@ export default function RefereeResultReviewModal({
                                     </Row>
 
                                     <Table
-                                        className="review-table"
+                                        className="review-table review-final-table"
                                         bordered
                                         scroll={{
                                             x: "max-content"
@@ -320,19 +332,7 @@ export default function RefereeResultReviewModal({
                                             textAlign: "right",
                                         }}
                                     >
-                                        <Button
-                                            type="primary"
-                                            size="large"
-                                            icon={<CheckCircleOutlined />}
-                                            loading={confirmLoading}
-                                            disabled={
-                                                hasFinalResult ||
-                                                !report
-                                            }
-                                            onClick={handleConfirmFinalResult}
-                                        >
-                                            Confirm Official Result
-                                        </Button>
+
                                     </div>
                                     <Card
                                         className="review-section-card"
@@ -351,6 +351,7 @@ export default function RefereeResultReviewModal({
                                         </Title>
 
                                         <Descriptions
+                                            className="review-description"
                                             bordered
                                             column={1}
                                             size="middle"
@@ -378,42 +379,6 @@ export default function RefereeResultReviewModal({
                                                     {report?.reason || "-"}
                                                 </div>
 
-                                            </Descriptions.Item>
-
-                                            <Descriptions.Item
-                                                label={
-                                                    <Text
-                                                        strong
-                                                        style={{
-                                                            color: "#fff"
-                                                        }}
-                                                    >
-                                                        Disqualified Horses
-                                                    </Text>
-                                                }
-                                            >
-                                                <div
-                                                    style={{
-                                                        color: "#fff"
-                                                    }}
-                                                >
-                                                    {reportIds.length > 0
-                                                        ? reportIds
-                                                            .map(id => {
-
-                                                                const raw = rawResults.find(
-                                                                    r => r._id === id
-                                                                );
-
-                                                                return raw
-                                                                    ? horseMap[raw.horseId]
-                                                                    : id;
-
-                                                            })
-                                                            .join(", ")
-                                                        : "-"
-                                                    }
-                                                </div>
                                             </Descriptions.Item>
 
                                         </Descriptions>

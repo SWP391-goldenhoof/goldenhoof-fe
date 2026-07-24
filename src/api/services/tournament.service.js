@@ -13,6 +13,7 @@ function unwrapCollection(response) {
     if (Array.isArray(data)) return data;
     if (Array.isArray(data?.items)) return data.items;
     if (Array.isArray(data?.tournaments)) return data.tournaments;
+    if (Array.isArray(data?.results)) return data.results;
     if (Array.isArray(data?.content)) return data.content;
     if (Array.isArray(data?.records)) return data.records;
 
@@ -33,6 +34,17 @@ export async function getTournaments(status) {
 
         return status !== "canceled";
     });
+}
+
+export async function getAdminTournamentStats() {
+    const response = await apiClient.get(
+        TOURNAMENT_ENDPOINTS.ADMIN_DASHBOARD_STATS,
+        {
+            includeAuth: true,
+        }
+    );
+
+    return unwrapData(response);
 }
 
 
@@ -120,6 +132,18 @@ export async function getTournamentAdvancements(id) {
 
   return unwrapCollection(response);
 }
+
+export async function getTournamentResults(id) {
+  const response = await apiClient.get(
+    TOURNAMENT_ENDPOINTS.RESULTS(id),
+    {
+      includeAuth: true,
+    }
+  );
+
+  return unwrapCollection(response);
+}
+
 export async function getTournamentParticipants(tournamentId) {
     const response = await apiClient.get(
         TOURNAMENT_ENDPOINTS.PARTICIPANTS(tournamentId),

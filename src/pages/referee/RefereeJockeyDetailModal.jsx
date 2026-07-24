@@ -25,6 +25,8 @@ import { useEffect, useState } from "react";
 
 import { getUserById } from "../../api/services/user.service";
 
+import "./RefereeProfileModal.css";
+
 const { Title } = Typography;
 
 function genderText(gender) {
@@ -74,21 +76,20 @@ export default function RefereeJockeyDetailModal({
 
     return (
         <Modal
+            className="referee-profile-modal"
             title="🏇 Jockey Profile"
             open={open}
             onCancel={onClose}
             footer={null}
-            width={950}
+            width={980}
+            centered
             destroyOnClose
         >
             {loading ? (
-                <div
-                    style={{
-                        textAlign: "center",
-                        padding: 80,
-                    }}
-                >
+                <div className="profile-loading">
                     <Spin size="large" />
+
+                    <p>Loading jockey profile...</p>
                 </div>
             ) : !jockey ? (
                 <Empty description="Jockey not found" />
@@ -96,15 +97,16 @@ export default function RefereeJockeyDetailModal({
                 <>
                     <Card
                         bordered={false}
-                        style={{
-                            borderRadius: 16,
-                            marginBottom: 20,
-                        }}
+                        className="profile-hero-card glass-card"
                     >
-                        <Row gutter={32} align="middle">
+                        <Row
+                            gutter={[32, 32]}
+                            align="middle"
+                        >
                             <Col>
                                 <Avatar
-                                    size={150}
+                                    className="profile-avatar"
+                                    size={170}
                                     src={jockey.avatar}
                                     icon={<UserOutlined />}
                                 />
@@ -113,32 +115,43 @@ export default function RefereeJockeyDetailModal({
                             <Col flex="auto">
                                 <Title
                                     level={2}
-                                    style={{
-                                        marginBottom: 8,
-                                    }}
+                                    className="profile-name"
                                 >
                                     {jockey.fullName}
                                 </Title>
 
-                                <Space wrap>
-                                    <Tag color="blue">
+                                <Text className="profile-id">
+                                    ID: {jockey._id}
+                                </Text>
+
+                                <Text className="profile-subtitle">
+                                    Professional Racing Jockey
+                                </Text>
+
+                                <Space
+                                    wrap
+                                    style={{ marginTop: 14 }}
+                                >
+                                    <Tag className="role-tag">
                                         {jockey.role}
                                     </Tag>
 
                                     <Tag
-                                        color={statusColor(
-                                            jockey.status
-                                        )}
+                                        className="status-tag"
+                                        color={statusColor(jockey.status)}
                                     >
                                         {jockey.status}
                                     </Tag>
                                 </Space>
 
-                                <Divider />
+                                <Divider className="profile-divider" />
 
-                                <Row gutter={16}>
-                                    <Col span={8}>
+                                <Row gutter={[24, 24]}
+                                    style={{ marginTop: 28 }}>
+                                    <Col xs={24}
+                                        sm={8}>
                                         <Statistic
+                                            className="profile-statistic"
                                             title="Experience"
                                             value={
                                                 jockey.experienceYears ?? 0
@@ -147,8 +160,10 @@ export default function RefereeJockeyDetailModal({
                                         />
                                     </Col>
 
-                                    <Col span={8}>
+                                    <Col xs={24}
+                                        sm={8}>
                                         <Statistic
+                                            className="profile-statistic"
                                             title="Race Attempts"
                                             value={
                                                 jockey.racesAttempt ?? 0
@@ -156,8 +171,10 @@ export default function RefereeJockeyDetailModal({
                                         />
                                     </Col>
 
-                                    <Col span={8}>
+                                    <Col xs={24}
+                                        sm={8}>
                                         <Statistic
+                                            className="profile-statistic"
                                             title="Reputation"
                                             value={
                                                 jockey.reputationPoints ?? 0
@@ -169,9 +186,12 @@ export default function RefereeJockeyDetailModal({
                         </Row>
                     </Card>
 
-                    <Row gutter={16}>
-                        <Col span={12}>
+                    <Row gutter={[24, 24]}
+                        style={{ marginTop: 28 }}>
+                        <Col xs={24}
+                            md={12}>
                             <Card
+                                className="profile-info-card"
                                 title="Personal Information"
                                 bordered={false}
                                 style={{
@@ -179,6 +199,7 @@ export default function RefereeJockeyDetailModal({
                                 }}
                             >
                                 <Descriptions
+                                    className="profile-description"
                                     column={1}
                                     size="middle"
                                 >
@@ -235,8 +256,10 @@ export default function RefereeJockeyDetailModal({
                             </Card>
                         </Col>
 
-                        <Col span={12}>
+                        <Col xs={24}
+                            md={12}>
                             <Card
+                                className="profile-info-card"
                                 title="Career Information"
                                 bordered={false}
                                 style={{
@@ -244,6 +267,7 @@ export default function RefereeJockeyDetailModal({
                                 }}
                             >
                                 <Descriptions
+                                    className="profile-description"
                                     column={1}
                                     size="middle"
                                 >
@@ -276,7 +300,7 @@ export default function RefereeJockeyDetailModal({
                                     </Descriptions.Item>
 
                                     <Descriptions.Item label="Role">
-                                        <Tag color="blue">
+                                        <Tag className="role-tag">
                                             {jockey.role}
                                         </Tag>
                                     </Descriptions.Item>

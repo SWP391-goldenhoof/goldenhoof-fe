@@ -113,6 +113,7 @@ export default function Landing() {
           display: inline-flex;
           align-items: center;
           gap: 10px;
+          min-width: 0;
           font-size: 25px;
           font-weight: 950;
         }
@@ -133,6 +134,7 @@ export default function Landing() {
           display: flex;
           align-items: center;
           gap: 12px;
+          flex: 0 0 auto;
         }
 
         .landing-btn {
@@ -261,10 +263,26 @@ export default function Landing() {
           .landing-container { width: min(100% - 28px, 1180px); }
           .landing-nav,
           .landing-nav-inner { height: 74px; }
+          .landing-nav-inner { gap: 10px; }
           .landing-brand { font-size: 21px; }
-          .landing-actions .landing-btn:first-child { display: none; }
+          .landing-actions { gap: 8px; }
+          .landing-actions .landing-btn {
+            min-height: 42px;
+            padding: 0 13px;
+            font-size: 14px;
+          }
           .landing-content h1 { font-size: clamp(42px, 13vw, 62px); }
           .landing-copy { font-size: 16px; }
+        }
+
+        @media (max-width: 430px) {
+          .landing-container { width: min(100% - 22px, 1180px); }
+          .landing-brand span { display: none; }
+          .landing-actions .landing-btn {
+            min-height: 40px;
+            padding: 0 11px;
+            font-size: 13px;
+          }
         }
       `}</style>
 

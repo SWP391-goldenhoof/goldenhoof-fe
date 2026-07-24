@@ -27,6 +27,15 @@ export async function getRegistrations({ status, tournamentId } = {}) {
   return response.data;
 }
 
+export async function getAdminRegistrationStats() {
+  const response = await apiClient.get(
+    REGISTRATION_ENDPOINTS.ADMIN_DASHBOARD_STATS,
+    { includeAuth: true },
+  );
+
+  return unwrapData(response);
+}
+
 export async function getRegistrationById(id) {
   const response = await apiClient.get(REGISTRATION_ENDPOINTS.DETAIL(id), {
     includeAuth: true,

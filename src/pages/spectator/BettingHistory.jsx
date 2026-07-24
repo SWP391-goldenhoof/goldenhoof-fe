@@ -17,9 +17,12 @@ import {
 import { ArrowLeftOutlined, EditOutlined } from "@ant-design/icons";
 import { Link, useNavigate } from "react-router-dom";
 import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
 import { getMyBets, updateBet } from "../../api/services/bet.service";
 import { getRaceById } from "../../api/services/race.service";
 import { getHorses } from "../../api/services/horse.service";
+
+dayjs.extend(utc);
 
 const { Text, Title } = Typography;
 const { Search } = Input;
@@ -42,17 +45,8 @@ function resolveList(response) {
 
 function formatDate(value) {
   if (!value) return "N/A";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-
-  return new Intl.DateTimeFormat("en-GB", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-  }).format(date);
+  const date = dayjs.utc(value);
+  return date.isValid() ? date.format("DD/MM/YYYY HH:mm:ss") : value;
 }
 
 function normalizeBet(item, index) {

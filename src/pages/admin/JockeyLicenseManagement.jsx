@@ -11,10 +11,16 @@ import {
   Typography,
   message,
   List,
+  Image,
 } from "antd";
 import "antd/dist/reset.css";
 import { getJockeysWithLicenses } from "../../api/services/user.service";
 import { updateJockeyStatus } from "../../api/services/jockeyLicense.service";
+import { useAdminTableFixedColumns } from "../../hooks/useAdminTableFixedColumns";
+import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
+
+dayjs.extend(utc);
 
 const { Text, Title } = Typography;
 
@@ -32,14 +38,8 @@ function formatDate(value) {
   if (typeof value === "string" && value.includes("/")) {
     return value;
   }
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-
-  return new Intl.DateTimeFormat("en-GB", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  }).format(date);
+  const date = dayjs.utc(value);
+  return date.isValid() ? date.format("DD/MM/YYYY") : value;
 }
 
 function getTimeValue(value) {
@@ -82,6 +82,7 @@ function getNewestLicenseTime(licenses = []) {
       getObjectIdTime(license?.licenseId),
       getTimeValue(license?.createdAt),
       getTimeValue(license?.uploadedAt),
+      getTimeValue(license?.racingStartDate),
       getTimeValue(license?.submittedAt),
       getTimeValue(license?.registeredAt),
       getTimeValue(license?.requestedAt),
@@ -137,12 +138,7 @@ function normalizeJockey(jockey, index) {
       getTimeValue(
         pick(
           jockey,
-          [
-            "createdAt",
-            "submittedAt",
-            "registeredAt",
-            "requestedAt",
-          ],
+          ["createdAt", "submittedAt", "registeredAt", "requestedAt"],
           "",
         ),
       ),
@@ -187,11 +183,12 @@ function JockeyLicenseManagement() {
   const [selectedStatusFilter, setSelectedStatusFilter] = useState(null);
   const [statusChangingId, setStatusChangingId] = useState(null);
   const [viewingLicensesJockey, setViewingLicensesJockey] = useState(null);
+  const shouldFixColumns = useAdminTableFixedColumns();
 
-  async function loadJockeys() {
+  async function loadJockeys(jockeyStatus = "") {
     setIsLoading(true);
     try {
-      const data = await getJockeysWithLicenses();
+      const data = await getJockeysWithLicenses(jockeyStatus);
       setJockeys(data.map(normalizeJockey).sort(sortNewestJockeyFirst));
     } catch (error) {
       message.error(error?.message || "Unable to load jockeys");
@@ -200,12 +197,7 @@ function JockeyLicenseManagement() {
     }
   }
 
-  const filteredJockeys = useMemo(() => {
-    if (!selectedStatusFilter) return jockeys;
-    return jockeys.filter(
-      (jockey) => jockey.jockeyStatus === selectedStatusFilter,
-    );
-  }, [jockeys, selectedStatusFilter]);
+  const filteredJockeys = useMemo(() => jockeys, [jockeys]);
 
   async function handleJockeyStatusChange(profileId, recordId, nextStatus) {
     if (!profileId) {
@@ -241,7 +233,7 @@ function JockeyLicenseManagement() {
       {
         title: "Avatar",
         dataIndex: "avatar",
-        fixed: "left",
+        fixed: shouldFixColumns ? "left" : undefined,
         width: 88,
         render: (avatar, record) => {
           const cleanSrc = avatar && avatar.trim() !== "" ? avatar : null;
@@ -262,7 +254,7 @@ function JockeyLicenseManagement() {
       {
         title: "Full Name",
         dataIndex: "fullName",
-        fixed: "left",
+        fixed: shouldFixColumns ? "left" : undefined,
         width: 190,
       },
       {
@@ -276,17 +268,25 @@ function JockeyLicenseManagement() {
         dataIndex: "phoneNumber",
         width: 150,
       },
+      // {
+      //   title: "Height / Weight",
+      //   key: "specs",
+      //   width: 160,
+      //   render: (_, record) => `${record.height} cm / ${record.weight} kg`,
+      // },
       {
-        title: "Height / Weight",
-        key: "specs",
-        width: 160,
-        render: (_, record) => `${record.height} cm / ${record.weight} kg`,
-      },
-      {
-        title: "Licenses Count",
+        title: "License Active",
         dataIndex: "licenses",
         width: 130,
-        render: (licenses) => <Tag color="blue">{licenses.length} active</Tag>,
+        // render: (licenses) => <Tag color="blue">{licenses.length} active</Tag>,
+        render: (licenses) => {
+          const isActive = licenses && licenses.length > 0;
+          return (
+            <Tag color={isActive ? "darkgreen" : "red"}>
+              {isActive ? "Active" : "Inactive"}
+            </Tag>
+          );
+        },
       },
       {
         title: "Latest",
@@ -295,14 +295,14 @@ function JockeyLicenseManagement() {
         render: (sortTime) => (sortTime ? formatDate(sortTime) : "N/A"),
       },
       {
-        title: "Jockey Status",
+        title: "Update Jockey Status",
         dataIndex: "jockeyStatus",
         width: 180,
         render: (jockeyStatus, record) => (
           <Select
             value={jockeyStatus}
             size="small"
-            style={{ width: 155 }}
+            style={{ width: 155, background: "darkgreen", color: "white" }}
             loading={statusChangingId === record.id}
             onChange={(nextValue) =>
               handleJockeyStatusChange(record.profileId, record.id, nextValue)
@@ -310,37 +310,35 @@ function JockeyLicenseManagement() {
             options={[
               {
                 value: "Pending_Approval",
-                label: (
-                  <span style={{ color: "orange" }}>Pending Approval</span>
-                ),
+                label: <span style={{ color: "white" }}>Pending Approval</span>,
               },
               {
                 value: "Available",
-                label: <span style={{ color: "green" }}>Available</span>,
+                label: <span style={{ color: "white" }}>Available</span>,
               },
-              {
-                value: "Contracted",
-                label: <span style={{ color: "blue" }}>Contracted</span>,
-              },
-              {
-                value: "Busy",
-                label: <span style={{ color: "purple" }}>Busy</span>,
-              },
-              {
-                value: "Resting",
-                label: <span style={{ color: "gray" }}>Resting</span>,
-              },
-              {
-                value: "Injured",
-                label: <span style={{ color: "magenta" }}>Injured</span>,
-              },
+              // {
+              //   value: "Contracted",
+              //   label: <span style={{ color: "white" }}>Contracted</span>,
+              // },
+              // {
+              //   value: "Busy",
+              //   label: <span style={{ color: "white" }}>Busy</span>,
+              // },
+              // {
+              //   value: "Resting",
+              //   label: <span style={{ color: "white" }}>Resting</span>,
+              // },
+              // {
+              //   value: "Injured",
+              //   label: <span style={{ color: "white" }}>Injured</span>,
+              // },
               {
                 value: "Rejected",
-                label: <span style={{ color: "red" }}>Rejected</span>,
+                label: <span style={{ color: "white" }}>Rejected</span>,
               },
               {
                 value: "Banned",
-                label: <span style={{ color: "darkred" }}>Banned</span>,
+                label: <span style={{ color: "white" }}>Banned</span>,
               },
             ]}
           />
@@ -349,7 +347,7 @@ function JockeyLicenseManagement() {
       {
         title: "Actions",
         key: "actions",
-        fixed: "right",
+        fixed: shouldFixColumns ? "right" : undefined,
         width: 140,
         render: (_, record) => (
           <Button
@@ -362,7 +360,7 @@ function JockeyLicenseManagement() {
         ),
       },
     ],
-    [statusChangingId, jockeys],
+    [statusChangingId, jockeys, shouldFixColumns],
   );
 
   return (
@@ -456,7 +454,10 @@ function JockeyLicenseManagement() {
             placeholder="Filter by Jockey Status"
             allowClear
             style={{ width: 220 }}
-            onChange={(val) => setSelectedStatusFilter(val)}
+            onChange={(val) => {
+              setSelectedStatusFilter(val);
+              loadJockeys(val || "");
+            }}
           >
             <Select.Option value="Pending_Approval">
               Pending Approval
@@ -470,7 +471,10 @@ function JockeyLicenseManagement() {
             <Select.Option value="Banned">Banned</Select.Option>
           </Select>
 
-          <Button className="user-management-refresh" onClick={loadJockeys}>
+          <Button
+            className="user-management-refresh"
+            onClick={() => loadJockeys(selectedStatusFilter || "")}
+          >
             Refresh
           </Button>
         </div>
@@ -501,6 +505,17 @@ function JockeyLicenseManagement() {
         ]}
         onCancel={() => setViewingLicensesJockey(null)}
       >
+        {viewingLicensesJockey && (
+          <Space direction="vertical" size={2} style={{ marginBottom: 12 }}>
+            <Text>
+              Jockey ID: <Text code>{viewingLicensesJockey.id || "N/A"}</Text>
+            </Text>
+            {/* <Text>
+              Profile ID:{" "}
+              <Text code>{viewingLicensesJockey.profileId || "N/A"}</Text>
+            </Text> */}
+          </Space>
+        )}
         {viewingLicensesJockey?.licenses.length === 0 ? (
           <Text
             type="secondary"
@@ -518,7 +533,7 @@ function JockeyLicenseManagement() {
                 extra={
                   license.licenseUrl ? (
                     <div style={{ marginTop: 8, marginBottom: 8 }}>
-                      <img
+                      <Image
                         src={license.licenseUrl}
                         alt={`License ${license.licenseCode}`}
                         style={{
@@ -529,10 +544,9 @@ function JockeyLicenseManagement() {
                           borderRadius: "6px",
                           border: "1px solid #f0f0f0",
                           boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
+                          cursor: "pointer",
                         }}
-                        onError={(e) => {
-                          e.target.style.display = "none";
-                        }}
+                        fallback="https://via.placeholder.com/220x140?text=Image+Error"
                       />
                     </div>
                   ) : null
@@ -553,7 +567,22 @@ function JockeyLicenseManagement() {
                   title={
                     <Text strong>License Code: {license.licenseCode}</Text>
                   }
-                  description={`Racing Start Date: ${formatDate(license.racingStartDate)}`}
+                  description={
+                    <Space direction="vertical" size={2}>
+                      <Text>
+                        License ID:{" "}
+                        <Text code>
+                          {license._id ||
+                            license.id ||
+                            license.licenseId ||
+                            "N/A"}
+                        </Text>
+                      </Text>
+                      <Text>
+                        Racing Start Date: {formatDate(license.racingStartDate)}
+                      </Text>
+                    </Space>
+                  }
                 />
               </List.Item>
             )}

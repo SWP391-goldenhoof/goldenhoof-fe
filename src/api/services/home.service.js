@@ -1,6 +1,10 @@
 import { getRacesByTournament } from "./race.service";
 import { getRaceCourses } from "./race-course.service";
-import { getTournaments } from "./tournament.service";
+import { getTournamentResults, getTournaments } from "./tournament.service";
+import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
+
+dayjs.extend(utc);
 
 const delay = (value, ms = 180) =>
   new Promise((resolve) => {
@@ -45,15 +49,20 @@ function formatRaceTime(race) {
     race?.startTime || race?.startAt || race?.scheduledAt || race?.date;
   if (!startTime) return "TBA";
 
-  const date = new Date(startTime);
-  if (!Number.isNaN(date.getTime())) {
-    return date.toLocaleTimeString("vi-VN", {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  }
+  const date = dayjs.utc(startTime);
+  return date.isValid() ? date.format("HH:mm") : String(startTime);
+}
 
-  return String(startTime);
+function formatResultTime(value) {
+  if (!value) return "—";
+
+  const date = dayjs.utc(value);
+  return date.isValid() ? date.format("HH:mm:ss DD/MM/YYYY") : String(value);
+}
+
+function getDateSortValue(value, fallback = 0) {
+  const date = dayjs(value);
+  return date.isValid() ? date.valueOf() : fallback;
 }
 
 function normalizeHomeRace(race, tournament, index, raceCourse) {
@@ -62,6 +71,8 @@ function normalizeHomeRace(race, tournament, index, raceCourse) {
     status.trim().toLowerCase(),
   );
   const course = raceCourse || {};
+  const scheduleTime =
+    race?.startAt || race?.scheduledAt || race?.startTime || race?.date || "";
   const distance = race?.distance ?? course?.distance;
   const distanceLabel = distance
     ? /(?:m|km)$/i.test(String(distance))
@@ -88,6 +99,7 @@ function normalizeHomeRace(race, tournament, index, raceCourse) {
     distance: distanceLabel,
     surface: race?.surface || course?.surface || course?.trackType || "Track",
     image: race?.image || course?.image || "/goldenhoof-hero.png",
+    date: scheduleTime,
     tournament:
       race?.tournamentTitle ||
       race?.tournamentName ||
@@ -101,12 +113,7 @@ function normalizeHomeRace(race, tournament, index, raceCourse) {
       race?.totalHorses ??
       race?.filledSlots ??
       (Array.isArray(race?.horses) ? race.horses.length : 0),
-    sortTime:
-      race?.startAt ||
-      race?.scheduledAt ||
-      race?.startTime ||
-      race?.date ||
-      "",
+    sortTime: scheduleTime,
   };
 }
 
@@ -165,12 +172,6 @@ const topJockeys = [
   { id: 5, rank: 5, name: "Ethan Walker", wins: 65, winRate: "17%" },
 ];
 
-const topPredictors = [
-  { id: 1, name: "RacingFan88", points: 2450 },
-  { id: 2, name: "TurfMaster", points: 2150 },
-  { id: 3, name: "SpeedKing", points: 1980 },
-];
-
 export async function getUpcomingRaces() {
   return (await loadRaceCollections()).upcoming.slice(0, 5);
 }
@@ -200,19 +201,13 @@ function normalizeFinishedRace(race, tournament, index, raceCourse) {
   const winnerHorse = winnerResult?.horseId || winnerResult?.horse || {};
   const winnerJockey = winnerResult?.jockeyId || winnerResult?.jockey || {};
   const distance = race?.distance ?? course?.distance;
-  const date =
-    race?.finishedAt ||
-    race?.completedAt ||
-    race?.startAt ||
-    race?.scheduledAt ||
-    race?.date ||
-    race?.updatedAt ||
-    "";
+  const date = race?.date || "";
 
   return {
-    id: getId(race),
-    status: "Finished",
+    id: getId(race) || race?.raceId || `${getId(tournament)}-result-${index}`,
+    status: race?.status || "Finished",
     race:
+      race?.raceName ||
       race?.name ||
       race?.title ||
       `Race ${race?.raceOrder || race?.roundNumber || index + 1}`,
@@ -232,31 +227,13 @@ function normalizeFinishedRace(race, tournament, index, raceCourse) {
         ? String(distance)
         : `${distance}m`
       : "Distance TBA",
-    surface: race?.surface || course?.surface || course?.trackType || "Track",
-    winner:
-      race?.winnerName ||
-      race?.winner?.name ||
-      race?.winner?.horseName ||
-      winnerResult?.horseName ||
-      winnerHorse?.name ||
-      winnerHorse?.horseName ||
-      "Awaiting confirmation",
-    jockey:
-      race?.winnerJockeyName ||
-      race?.winnerJockey?.fullName ||
-      race?.winnerJockey?.name ||
-      winnerResult?.jockeyName ||
-      winnerJockey?.fullName ||
-      winnerJockey?.name ||
-      "—",
-    time:
-      race?.winningTime ||
-      winnerResult?.elapsedTime ||
-      winnerResult?.finishedTime ||
-      winnerResult?.finishTime ||
-      "—",
+    trackType: race?.trackType || "Track",
+    winner: winnerResult?.horseName || "Awaiting confirmation",
+    jockey: winnerResult?.jockeyName || "—",
+    time: formatResultTime(race?.startTime),
     date,
     image: race?.image || course?.image || "/goldenhoof-hero.png",
+    results: Array.isArray(results) ? results : [],
   };
 }
 
@@ -285,12 +262,18 @@ async function loadRaceCollections() {
       const responses = await Promise.allSettled(
         tournaments.map(async (tournament) => {
           const tournamentId = getId(tournament);
-          if (!tournamentId) return { tournament, races: [] };
+          if (!tournamentId) return { tournament, races: [], resultRaces: [] };
 
-          // One request per tournament is enough. Filtering by status happens
-          // locally and feeds both Upcoming and Latest Results.
-          const response = await getRacesByTournament(tournamentId);
-          return { tournament, races: resolveList(response) };
+          const [raceResponse, resultResponse] = await Promise.all([
+            getRacesByTournament(tournamentId).catch(() => []),
+            getTournamentResults(tournamentId).catch(() => []),
+          ]);
+
+          return {
+            tournament,
+            races: resolveList(raceResponse),
+            resultRaces: resolveList(resultResponse),
+          };
         }),
       );
       const groups = responses.flatMap((response) =>
@@ -304,7 +287,6 @@ async function loadRaceCollections() {
         "scheduled",
         "ready",
       ]);
-      const finishedStatuses = new Set(["finished", "completed"]);
       const upcoming = groups.flatMap(({ tournament, races }) =>
         races
           .filter((race) =>
@@ -321,13 +303,9 @@ async function loadRaceCollections() {
             ),
           ),
       );
-      const finished = groups.flatMap(({ tournament, races }) =>
-        races
-          .filter((race) =>
-            finishedStatuses.has(
-              String(race?.status || "").trim().toLowerCase(),
-            ),
-          )
+      const finished = groups.flatMap(({ tournament, resultRaces }) =>
+        resultRaces
+          .filter((race) => Array.isArray(race?.results) && race.results.length)
           .map((race, index) =>
             normalizeFinishedRace(
               race,
@@ -346,8 +324,14 @@ async function loadRaceCollections() {
         if (Boolean(first.status) !== Boolean(second.status)) {
           return first.status ? -1 : 1;
         }
-        const firstTime = new Date(first.sortTime).getTime();
-        const secondTime = new Date(second.sortTime).getTime();
+        const firstTime = getDateSortValue(
+          first.sortTime,
+          Number.MAX_SAFE_INTEGER,
+        );
+        const secondTime = getDateSortValue(
+          second.sortTime,
+          Number.MAX_SAFE_INTEGER,
+        );
         return (
           (Number.isNaN(firstTime) ? Number.MAX_SAFE_INTEGER : firstTime) -
           (Number.isNaN(secondTime) ? Number.MAX_SAFE_INTEGER : secondTime)
@@ -359,8 +343,7 @@ async function loadRaceCollections() {
         ).values(),
       ).sort(
         (first, second) =>
-          (new Date(second.date).getTime() || 0) -
-          (new Date(first.date).getTime() || 0),
+          getDateSortValue(second.date) - getDateSortValue(first.date),
       );
 
       return { upcoming: uniqueUpcoming, finished: uniqueFinished };
@@ -380,21 +363,15 @@ export async function getLatestResults() {
   return (await getFinishedRaceResults()).slice(0, 4);
 }
 
-export async function getTopPredictors() {
-  return topPredictors;
-}
-
 export async function getHomePageData() {
-  const [races, results, predictors] =
+  const [races, results] =
     await Promise.all([
       getUpcomingRaces(),
       getLatestResults(),
-      getTopPredictors(),
     ]);
 
   return {
     races,
     results,
-    predictors,
   };
 }

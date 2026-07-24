@@ -32,6 +32,14 @@ export async function getUsers() {
   return response.data;
 }
 
+export async function getAdminDashboardStats() {
+  const response = await apiClient.get(USER_ENDPOINTS.ADMIN_DASHBOARD_STATS, {
+    includeAuth: true,
+  });
+
+  return unwrapData(response);
+}
+
 export async function getUserById(id) {
   const response = await apiClient.get(USER_ENDPOINTS.DETAIL(id), {
     includeAuth: true,
@@ -51,10 +59,33 @@ export async function searchUsersByName(fullName) {
   return response.data;
 }
 
-export async function getUsersByRole(role) {
+// export async function getUsersByRole(role) {
+//   const response = await apiClient.get(USER_ENDPOINTS.BY_ROLE, {
+//     includeAuth: true,
+//     params: { role },
+//   });
+
+//   return unwrapCollection(response);
+// }
+
+export async function getUsersByRole(role, jockeyStatus, status) {
+  const params = {};
+
+  if (role) {
+    params.role = role;
+  }
+
+  if (role === "Jockey" && jockeyStatus) {
+    params.jockeyStatus = jockeyStatus;
+  }
+
+  if (status) {
+    params.status = status;
+  }
+
   const response = await apiClient.get(USER_ENDPOINTS.BY_ROLE, {
     includeAuth: true,
-    params: { role },
+    params,
   });
 
   return unwrapCollection(response);
@@ -252,4 +283,16 @@ export async function adjustHorseOwnerReputation(userId, amount) {
   );
 
   return response.data;
+}
+
+export async function searchJockeys(params) {
+  const response = await apiClient.get(
+    USER_ENDPOINTS.SEARCH_JOCKEY_BY_NAME,
+    {
+      includeAuth: true,
+      params,
+    }
+  );
+
+  return unwrapCollection(response);
 }

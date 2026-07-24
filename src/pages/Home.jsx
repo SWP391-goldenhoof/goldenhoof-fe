@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, Navigate } from "react-router-dom";
+import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
 import { getHomePageData } from "../api/services/home.service";
 import { API_BASE_URL } from "../api/client";
 import { getHorses } from "../api/services/horse.service";
-import { getUsersByRole } from "../api/services/user.service";
+import { getUsersByRole, searchJockeys } from "../api/services/user.service";
 import { getRoleHomePath } from "../utils/roles";
 import {
   clearAuthSession,
@@ -20,15 +22,32 @@ import {
   markNotificationAsRead,
 } from "../api/services/notification.service";
 
-function formatRaceDateTime(value, fallback = "TBA") {
-  if (!value) return fallback;
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return fallback;
+dayjs.extend(utc);
 
-  return new Intl.DateTimeFormat("vi-VN", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(date);
+// function formatRaceDateTime(value, fallback = "TBA") {
+//   if (!value) return fallback;
+//   const date = new Date(value);
+//   if (Number.isNaN(date.getTime())) return fallback;
+
+//   return new Intl.DateTimeFormat("vi-VN", {
+//     dateStyle: "medium",
+//     timeStyle: "short",
+//   }).format(date);
+// }
+
+function formatRaceDateTime(value) {
+  if (!value) return "N/A";
+  if (typeof value === "string" && value.includes("/")) {
+    return value;
+  }
+  const date = dayjs.utc(value);
+  return date.isValid() ? date.format("HH:mm DD/MM/YYYY") : value;
+}
+
+function formatDateTime(value, fallback = "N/A") {
+  if (!value) return fallback;
+  const date = dayjs.utc(value);
+  return date.isValid() ? date.format("HH:mm DD/MM/YYYY") : fallback;
 }
 
 function Icon({ name, size = 24 }) {
@@ -256,6 +275,10 @@ function toNumber(value) {
   return Number.isFinite(number) ? number : 0;
 }
 
+function formatWinRate(value) {
+  return toNumber(value).toFixed(2);
+}
+
 function resolveImageUrl(path) {
   if (!path) return "/goldenhoof-hero.png";
 
@@ -366,10 +389,11 @@ function Home() {
   const [selectedHorse, setSelectedHorse] = useState(null);
   const [selectedRace, setSelectedRace] = useState(null);
   const [notifications, setNotifications] = useState([]);
-  const [horseSortBy, setHorseSortBy] = useState("winRate");
-  const [minHorseWinRate, setMinHorseWinRate] = useState("");
-  const [minHorseTotalWin, setMinHorseTotalWin] = useState("");
-  const [minJockeyWinRate, setMinJockeyWinRate] = useState("");
+  const [horseSortOrder, setHorseSortOrder] = useState("desc");
+  const [horseSearch, setHorseSearch] = useState("");
+  const [jockeySearch, setJockeySearch] = useState("");
+  const [jockeySortWinRate, setJockeySortWinRate] = useState("");
+  const [jockeySortTotalWin, setJockeySortTotalWin] = useState("");
   const [homeData, setHomeData] = useState({
     races: [],
     horses: [],
@@ -378,6 +402,53 @@ function Home() {
     predictors: [],
   });
   const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(async () => {
+      try {
+        const params = {
+          search: horseSearch,
+          sortWinRate: horseSortOrder,
+        };
+
+        const horses = await getHorses(params);
+
+        setHomeData((current) => ({
+          ...current,
+          horses: Array.isArray(horses) ? horses.map(normalizeHomeHorse) : [],
+        }));
+      } catch (error) {
+        console.error(error);
+      }
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [horseSearch, horseSortOrder]);
+
+  useEffect(() => {
+    const timer = setTimeout(async () => {
+      try {
+        const params = {
+          fullName: jockeySearch || undefined,
+          sortWinRate: jockeySortWinRate || undefined,
+          sortTotalWin: jockeySortTotalWin || undefined,
+        };
+
+        const jockeys = await searchJockeys(params);
+
+        setHomeData((current) => ({
+          ...current,
+          jockeys: Array.isArray(jockeys)
+            ? jockeys.map(normalizeHomeJockey)
+            : [],
+        }));
+      } catch (error) {
+        console.error(error);
+      }
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [jockeySearch, jockeySortWinRate, jockeySortTotalWin]);
 
   useEffect(() => {
     let isMounted = true;
@@ -523,35 +594,18 @@ function Home() {
   ).length;
   const notificationPreview = notifications.slice(0, 5);
   const filteredHorses = useMemo(() => {
-    const minWinRate = minHorseWinRate === "" ? 0 : toNumber(minHorseWinRate);
-    const minTotalWin =
-      minHorseTotalWin === "" ? 0 : toNumber(minHorseTotalWin);
-    const sortKey = horseSortBy === "totalWin" ? "totalWin" : "winRate";
-
-    return homeData.horses
-      .filter(
-        (horse) =>
-          toNumber(horse.winRate) >= minWinRate &&
-          toNumber(horse.totalWin) >= minTotalWin,
-      )
-      .sort(
-        (first, second) => toNumber(second[sortKey]) - toNumber(first[sortKey]),
-      )
-      .map((horse, index) => ({ ...horse, rank: index + 1 }));
-  }, [homeData.horses, horseSortBy, minHorseTotalWin, minHorseWinRate]);
+    return (homeData.horses ?? []).map((horse, index) => ({
+      ...horse,
+      rank: index + 1,
+    }));
+  }, [homeData.horses]);
   const topHorses = filteredHorses.slice(0, 3);
-  const filteredJockeys = useMemo(() => {
-    const minWinRate = minJockeyWinRate === "" ? 0 : toNumber(minJockeyWinRate);
-
-    return homeData.jockeys
-      .filter((jockey) => toNumber(jockey.winRate) >= minWinRate)
-      .sort(
-        (first, second) => toNumber(second.winRate) - toNumber(first.winRate),
-      )
-      .map((jockey, index) => ({ ...jockey, rank: index + 1 }));
-  }, [homeData.jockeys, minJockeyWinRate]);
-  const topJockeys = filteredJockeys.slice(0, 5);
-
+  const topJockeys = (homeData.jockeys ?? [])
+    .map((jockey, index) => ({
+      ...jockey,
+      rank: index + 1,
+    }))
+    .slice(0, 5);
   if (!authSession) {
     return <Navigate to="/" replace />;
   }
@@ -660,6 +714,17 @@ function Home() {
           border-radius: 50%;
           background: #dc2626;
           box-shadow: 0 0 8px #ef4444;
+        }
+
+        .home-mobile-action-icon {
+          display: none;
+          align-items: center;
+          justify-content: center;
+          line-height: 1;
+        }
+
+        .home-mobile-action-icon svg {
+          display: block;
         }
 
         .home-icon-btn {
@@ -1048,8 +1113,9 @@ function Home() {
           display: flex;
           flex-wrap: wrap;
           align-items: center;
-          gap: 10px;
+          gap: 16px;
           margin: -6px 0 20px;
+          margin-bottom: 24px;
         }
 
         .horse-filter-bar select,
@@ -1065,12 +1131,23 @@ function Home() {
         }
 
         .horse-filter-bar select {
+          width: 210px;
           min-width: 150px;
           padding: 0 10px;
+          flex:0 0 220px;
+        }
+
+        .horse-search-input {
+          width: 280px;
+          flex:1;
+        }
+
+        .horse-range-input {
+          width: 180px;
+          flex:0 0 170px;
         }
 
         .horse-filter-bar input {
-          width: 128px;
           padding: 0 12px;
         }
 
@@ -1310,8 +1387,10 @@ function Home() {
 
         .race-card {
           min-height: 315px;
+          min-width: 0;
           display: flex;
           flex-direction: column;
+          overflow: hidden;
           padding: 16px;
         }
 
@@ -1351,9 +1430,50 @@ function Home() {
           font-weight: 950;
         }
 
+        .race-card h3 {
+          min-height: 48px;
+          max-height: 48px;
+          display: -webkit-box;
+          overflow: hidden;
+          overflow-wrap: anywhere;
+          -webkit-box-orient: vertical;
+          -webkit-line-clamp: 2;
+        }
+
         .muted {
           color: #6a817e;
           font-size: 14px;
+        }
+
+        .race-card .muted {
+          min-height: 36px;
+          display: -webkit-box;
+          overflow: hidden;
+          overflow-wrap: anywhere;
+          -webkit-box-orient: vertical;
+          -webkit-line-clamp: 2;
+        }
+
+        .race-date {
+          display: inline-flex;
+          align-items: center;
+          gap: 7px;
+          max-width: 100%;
+          min-width: 0;
+          margin-top: 12px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          color: #214d48;
+          font-size: 13px;
+          font-weight: 850;
+        }
+
+        .race-date svg {
+          width: 16px;
+          height: 16px;
+          flex: 0 0 auto;
+          color: #0b8d78;
         }
 
         .race-preview {
@@ -1398,6 +1518,7 @@ function Home() {
           place-items: center;
           width: 100%;
           min-height: 42px;
+          flex: 0 0 auto;
           margin-top: auto;
           border: 1px solid #bfece5;
           border-radius: 7px;
@@ -1548,8 +1669,7 @@ function Home() {
         }
 
         .jockey-list,
-        .result-list,
-        .predictor-list {
+        .result-list {
           display: grid;
           gap: 0;
         }
@@ -1681,7 +1801,7 @@ function Home() {
         }
 
         .result-row {
-          grid-template-columns: 140px 1fr auto auto;
+          grid-template-columns: 140px minmax(0, 1fr) 190px 220px;
           min-height: 112px;
         }
 
@@ -1693,8 +1813,16 @@ function Home() {
         }
 
         .result-details {
+          min-width: 0;
           display: grid;
           gap: 5px;
+        }
+
+        .result-details strong,
+        .result-details span:not(.result-status) {
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
         }
 
         .result-status {
@@ -1715,7 +1843,14 @@ function Home() {
         .winner {
           display: grid;
           gap: 3px;
-          min-width: 150px;
+          min-width: 0;
+        }
+
+        .winner strong,
+        .winner span {
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
         }
 
         .winner-icon {
@@ -1723,67 +1858,9 @@ function Home() {
           font-weight: 950;
         }
 
-        .prediction-band {
-          position: relative;
-          display: grid;
-          grid-template-columns: 1fr 1fr 260px;
-          gap: 34px;
-          align-items: center;
-          min-height: 230px;
-          margin-bottom: 30px;
-          padding: 42px;
-          border-radius: 8px;
-          color: #f4fffb;
-          overflow: hidden;
-          background:
-            radial-gradient(circle at 86% 55%, rgba(105, 248, 221, 0.28), transparent 28%),
-            linear-gradient(120deg, #003b35, #008272);
-        }
-
-        .prediction-band h2 {
-          margin: 0 0 12px;
-          font-size: 27px;
-          font-weight: 950;
-        }
-
-        .prediction-band p {
-          max-width: 390px;
-          margin: 0 0 22px;
-          color: rgba(244, 255, 251, 0.82);
-          line-height: 1.6;
-        }
-
-        .predictor-list {
-          gap: 10px;
-        }
-
-        .predictor-row {
-          display: grid;
-          grid-template-columns: 28px 38px 1fr auto;
-          align-items: center;
-          gap: 12px;
-          min-height: 44px;
-          padding: 0 16px;
-          border: 1px solid rgba(244, 255, 251, 0.24);
-          border-radius: 999px;
-          background: rgba(0, 35, 32, 0.2);
-          font-weight: 900;
-        }
-
-        .predictor-row span:last-child {
-          color: rgba(244, 255, 251, 0.86);
-        }
-
-        .trophy-art {
-          justify-self: center;
-          width: 210px;
-          height: 210px;
-          display: grid;
-          place-items: center;
-          color: #69f8dd;
-          border-radius: 50%;
-          background: rgba(244, 255, 251, 0.08);
-          box-shadow: inset 0 0 60px rgba(105, 248, 221, 0.18);
+        .result-row > strong:last-child {
+          justify-self: start;
+          white-space: nowrap;
         }
 
         .home-footer {
@@ -1852,21 +1929,32 @@ function Home() {
         @media (max-width: 1120px) {
           .home-menu { display: none; }
           .race-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+          .result-row {
+            grid-template-columns: 140px minmax(0, 1fr) 170px 190px;
+          }
           .dashboard-grid,
-          .lower-grid,
-          .prediction-band { grid-template-columns: 1fr; }
+          .lower-grid { grid-template-columns: 1fr; }
           .horse-grid,
           .top-horse-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-          .trophy-art { display: none; }
           .footer-grid { grid-template-columns: repeat(2, 1fr); }
         }
 
         @media (max-width: 720px) {
           .home-container { width: min(100% - 28px, 1230px); }
           .home-nav { height: 74px; }
+          .home-nav-inner { gap: 10px; }
           .home-brand-logo { height: 62px; width: auto; }
-          .account-trigger { min-width: 160px; max-width: 210px; }
-          .home-actions > .home-icon-btn { display: none; }
+          .home-actions { gap: 8px; min-width: 0; }
+          .account-trigger { min-width: 0; max-width: 156px; }
+          .home-icon-btn {
+            width: 38px;
+            height: 38px;
+          }
+          .home-live-btn {
+            min-height: 38px;
+            padding: 0 10px;
+            font-size: 11px;
+          }
           .home-btn { min-height: 42px; padding: 0 14px; font-size: 13px; }
           .home-hero {
             min-height: 660px;
@@ -1895,12 +1983,102 @@ function Home() {
           .home-table td:nth-child(4),
           .home-table th:nth-child(6),
           .home-table td:nth-child(6) { display: none; }
-          .prediction-band { padding: 26px; }
           .horse-modal-backdrop { padding: 14px; }
           .race-detail-grid { grid-template-columns: 1fr 1fr; }
           .horse-profile { grid-template-columns: 1fr; }
           .horse-profile-stats,
           .horse-profile-details { grid-template-columns: 1fr; }
+        }
+
+        @media (max-width: 480px) {
+          .home-container { width: min(100% - 22px, 1230px); }
+          .home-brand-logo { height: 54px; }
+          .home-nav-inner { gap: 8px; }
+          .home-actions { gap: 6px; }
+          .home-live-btn {
+            width: 42px;
+            min-height: 40px;
+            padding: 0;
+            gap: 0;
+            font-size: 0;
+            justify-content: center;
+          }
+          .home-action-label {
+            display: none;
+          }
+          .home-live-btn i {
+            display: none;
+          }
+          .home-mobile-action-icon {
+            display: inline-flex;
+          }
+          .home-icon-btn {
+            width: 40px;
+            height: 40px;
+          }
+          .notification-dropdown {
+            position: fixed;
+            top: 84px;
+            right: 11px;
+            left: 11px;
+            width: auto;
+          }
+          .notification-dropdown-head {
+            padding: 10px 12px;
+          }
+          .notification-dropdown-head strong {
+            font-size: 13px;
+          }
+          .notification-dropdown-head span {
+            font-size: 11px;
+          }
+          .notification-list {
+            max-height: 250px;
+          }
+          .notification-item {
+            gap: 4px;
+            padding: 10px 12px;
+          }
+          .notification-title {
+            font-size: 12px;
+          }
+          .notification-content {
+            font-size: 11px;
+            line-height: 1.35;
+            -webkit-line-clamp: 1;
+          }
+          .notification-time {
+            font-size: 10px;
+          }
+          .notification-footer {
+            min-height: 38px;
+            font-size: 12px;
+          }
+          .account-trigger {
+            width: 44px;
+            max-width: 44px;
+            min-width: 44px;
+            padding: 0;
+            justify-content: center;
+          }
+          .account-trigger-name,
+          .account-trigger svg:last-child { display: none; }
+          .home-hero {
+            min-height: 620px;
+          }
+          .home-hero-content {
+            padding-top: 72px;
+          }
+          .home-hero h1 { font-size: clamp(38px, 12vw, 52px); }
+          .home-hero p {
+            font-size: 16px;
+            line-height: 1.65;
+          }
+          .home-hero-actions {
+            display: grid;
+            grid-template-columns: 1fr;
+            margin-bottom: 44px;
+          }
         }
       `}</style>
 
@@ -1915,34 +2093,30 @@ function Home() {
           </a>
 
           <nav className="home-menu" aria-label="Primary navigation">
-            {[
-              "Races",
-              "Horses",
-              "Jockeys",
-              "Results",
-              "Rankings",
-              "Predictions",
-              "News",
-              "About",
-            ].map((item) => (
-              <a href={`#${item.toLowerCase()}`} key={item}>
-                {item}
-              </a>
-            ))}
+            {["Races", "Horses", "Jockeys", "Results", "Predictions"].map(
+              (item) => (
+                <a href={`#${item.toLowerCase()}`} key={item}>
+                  {item}
+                </a>
+              ),
+            )}
           </nav>
 
           <div className="home-actions">
             {isSpectator && (
-              <Link
-                className="home-live-btn home-bet-btn"
-                to="/spectator/bets"
-              >
-                Bet Points
+              <Link className="home-live-btn home-bet-btn" to="/spectator/bets">
+                <span className="home-mobile-action-icon">
+                  <Icon name="trophy" size={18} />
+                </span>
+                <span className="home-action-label">Bet Points</span>
               </Link>
             )}
             <Link className="home-live-btn" to="/spectator/broadcast">
               <i aria-hidden="true" />
-              Live Broadcast
+              <span className="home-mobile-action-icon">
+                <Icon name="horse" size={18} />
+              </span>
+              <span className="home-action-label">Live Broadcast</span>
             </Link>
             <div className="nav-dropdown-wrap">
               <button
@@ -2010,9 +2184,7 @@ function Home() {
                           )}
                           {notification.createdAt && (
                             <span className="notification-time">
-                              {new Date(
-                                notification.createdAt,
-                              ).toLocaleString()}
+                              {formatDateTime(notification.createdAt)}
                             </span>
                           )}
                         </Link>
@@ -2052,14 +2224,16 @@ function Home() {
 
               {isAccountMenuOpen && (
                 <div className="account-dropdown" role="menu">
-                  <Link
-                    className="account-menu-item"
-                    role="menuitem"
-                    to={isAdmin ? "/admin/dashboard" : dashboardPath}
-                  >
-                    <Icon name="dashboard" size={18} />
-                    <span>Dashboard</span>
-                  </Link>
+                  {!isSpectator && (
+                    <Link
+                      className="account-menu-item"
+                      role="menuitem"
+                      to={isAdmin ? "/admin/dashboard" : dashboardPath}
+                    >
+                      <Icon name="dashboard" size={18} />
+                      <span>Dashboard</span>
+                    </Link>
+                  )}
                   <Link
                     className="account-menu-item"
                     role="menuitem"
@@ -2107,6 +2281,14 @@ function Home() {
                       >
                         <WalletOutlined style={{ fontSize: "18px" }} />
                         <span>Wallet</span>
+                      </Link>
+                      <Link
+                        className="account-menu-item"
+                        role="menuitem"
+                        to="/report"
+                      >
+                        <FileTextOutlined style={{ fontSize: "18px" }} />
+                        <span>Report</span>
                       </Link>
                     </>
                   )}
@@ -2177,14 +2359,17 @@ function Home() {
                       <span
                         className={`pill ${race.status ? "pill-live" : ""}`}
                       >
-                        {race.status || race.time}
-                      </span>
-                      <span>
-                        {race.status ? "Đang diễn ra" : "Sắp diễn ra"}
+                        {race.status ? "Live" : "Upcoming"}
                       </span>
                     </div>
-                    <h3>{race.name}</h3>
-                    <span className="muted">{race.venue}</span>
+                    <h3 title={race.name}>{race.name}</h3>
+                    <span className="muted" title={race.venue}>
+                      {race.venue}
+                    </span>
+                    <span className="race-date">
+                      <Icon name="clock" size={16} />
+                      {formatRaceDateTime(race.date || race.sortTime)}
+                    </span>
                     {race.status && (
                       <div className="race-preview">
                         <img src={race.image} alt={`${race.name} race`} />
@@ -2222,31 +2407,22 @@ function Home() {
                 }}
               />
               <div className="horse-filter-bar" aria-label="Horse filters">
+                <input
+                  type="text"
+                  className="horse-search-input"
+                  placeholder="Search horse name..."
+                  value={horseSearch}
+                  onChange={(e) => setHorseSearch(e.target.value)}
+                />
+
                 <select
-                  value={horseSortBy}
-                  onChange={(event) => setHorseSortBy(event.target.value)}
-                  aria-label="Sort horses"
+                  value={horseSortOrder}
+                  onChange={(e) => setHorseSortOrder(e.target.value)}
                 >
-                  <option value="winRate">Sort by win rate</option>
-                  <option value="totalWin">Sort by total wins</option>
+                  <option value="desc">Win rate descending</option>
+
+                  <option value="asc">Win rate ascending</option>
                 </select>
-                <input
-                  min="0"
-                  max="100"
-                  type="number"
-                  value={minHorseWinRate}
-                  onChange={(event) => setMinHorseWinRate(event.target.value)}
-                  placeholder="Min win rate"
-                  aria-label="Minimum win rate"
-                />
-                <input
-                  min="0"
-                  type="number"
-                  value={minHorseTotalWin}
-                  onChange={(event) => setMinHorseTotalWin(event.target.value)}
-                  placeholder="Min wins"
-                  aria-label="Minimum total wins"
-                />
               </div>
               <div className="horse-grid top-horse-grid">
                 {topHorses.map((horse) => (
@@ -2263,7 +2439,7 @@ function Home() {
                       </div>
                       <div className="horse-stat-row">
                         <span>Win rate</span>
-                        <strong>{horse.winRate || 0}%</strong>
+                        <strong>{formatWinRate(horse.winRate)}%</strong>
                       </div>
                       <div className="horse-stat-row">
                         <span>Wins</span>
@@ -2294,13 +2470,10 @@ function Home() {
               />
               <div className="horse-filter-bar" aria-label="Jockey filters">
                 <input
-                  min="0"
-                  max="100"
-                  type="number"
-                  value={minJockeyWinRate}
-                  onChange={(event) => setMinJockeyWinRate(event.target.value)}
-                  placeholder="Min win rate"
-                  aria-label="Minimum jockey win rate"
+                  type="text"
+                  placeholder="Search jockey..."
+                  value={jockeySearch}
+                  onChange={(e) => setJockeySearch(e.target.value)}
                 />
               </div>
               <div className="jockey-list">
@@ -2309,7 +2482,7 @@ function Home() {
                     <span className="rank-number">{jockey.rank}</span>
                     <Avatar name={jockey.name} rank={jockey.rank} />
                     <strong>{jockey.name}</strong>
-                    <span>Win Rate {jockey.winRate || 0}%</span>
+                    <span>Win Rate {formatWinRate(jockey.winRate)}%</span>
                   </div>
                 ))}
               </div>
@@ -2365,7 +2538,7 @@ function Home() {
                       <strong>{selectedRace.tournament}</strong>
                     </div>
                     <div className="race-detail-item">
-                      <span>Thời gian</span>
+                      <span>Time</span>
                       <strong>
                         {formatRaceDateTime(
                           selectedRace.sortTime,
@@ -2374,32 +2547,20 @@ function Home() {
                       </strong>
                     </div>
                     <div className="race-detail-item">
-                      <span>Địa điểm</span>
+                      <span>Race Course</span>
                       <strong>{selectedRace.venue}</strong>
                     </div>
                     <div className="race-detail-item">
-                      <span>Cự ly</span>
+                      <span>Distance</span>
                       <strong>{selectedRace.distance}</strong>
                     </div>
                     <div className="race-detail-item">
-                      <span>Mặt đường</span>
+                      <span>Race Track</span>
                       <strong>{selectedRace.surface}</strong>
                     </div>
                     <div className="race-detail-item">
-                      <span>Số ngựa</span>
-                      <strong>{selectedRace.horseCount || "—"}</strong>
-                    </div>
-                    <div className="race-detail-item">
-                      <span>Vòng</span>
+                      <span>Round</span>
                       <strong>{selectedRace.round}</strong>
-                    </div>
-                    <div className="race-detail-item">
-                      <span>Thứ tự race</span>
-                      <strong>{selectedRace.raceOrder}</strong>
-                    </div>
-                    <div className="race-detail-item">
-                      <span>Trạng thái</span>
-                      <strong>{selectedRace.rawStatus || "Scheduled"}</strong>
                     </div>
                   </div>
                 </div>
@@ -2448,7 +2609,9 @@ function Home() {
                       <div className="horse-profile-stats">
                         <div className="horse-profile-stat">
                           <span>Win rate</span>
-                          <strong>{selectedHorse.winRate || 0}%</strong>
+                          <strong>
+                            {formatWinRate(selectedHorse.winRate)}%
+                          </strong>
                         </div>
                         <div className="horse-profile-stat">
                           <span>Total wins</span>
@@ -2523,7 +2686,7 @@ function Home() {
                       </span>
                       <strong>{result.race}</strong>
                       <span>
-                        {result.venue} · {result.distance} · {result.surface}
+                        {result.venue} · {result.distance} · {result.trackType}
                       </span>
                     </div>
                     <div className="winner">
@@ -2531,14 +2694,14 @@ function Home() {
                       <strong>{result.winner}</strong>
                       <span>{result.jockey}</span>
                     </div>
-                    <strong>{result.time}</strong>
+                    <strong>{formatRaceDateTime(result.date)}</strong>
                   </article>
                 ))}
               </div>
             </section>
           </div>
 
-          <section className="prediction-band" id="predictions">
+          {/* <section className="prediction-band" id="predictions">
             <div>
               <h2>Make Your Predictions</h2>
               <p>
@@ -2566,7 +2729,7 @@ function Home() {
             <div className="trophy-art">
               <Icon name="trophy" size={132} />
             </div>
-          </section>
+          </section> */}
         </div>
       </section>
 

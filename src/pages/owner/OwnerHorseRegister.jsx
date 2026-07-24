@@ -7,6 +7,7 @@ import {
   Input,
   InputNumber,
   Row,
+  Select,
   Space,
   Typography,
   Upload,
@@ -15,11 +16,22 @@ import {
 import { UploadOutlined } from "@ant-design/icons";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { createHorse, uploadHorseAvatar } from "../../api/services/horse.service";
+import WorkspaceHeader from "../../components/ui/WorkspaceHeader";
+import {
+  createHorse,
+  uploadHorseAvatar,
+} from "../../api/services/horse.service";
 import { toHorseCreatePayload } from "./horseViewModel";
 
 function getUploadedImagePath(data) {
-  return data?.imageUrl || data?.avatar || data?.avatarUrl || data?.url || data?.path || data;
+  return (
+    data?.imageUrl ||
+    data?.avatar ||
+    data?.avatarUrl ||
+    data?.url ||
+    data?.path ||
+    data
+  );
 }
 
 export default function OwnerHorseRegister() {
@@ -90,16 +102,11 @@ export default function OwnerHorseRegister() {
     <Space direction="vertical" size={16} className="owner-page-stack">
       {contextHolder}
 
-      <Card>
-        <Space direction="vertical" size={4}>
-          <Typography.Title level={3} className="owner-section-title">
-            Register new horse
-          </Typography.Title>
-          <Typography.Text type="secondary">
-            Add a horse to your stable before choosing a jockey or registering for a tournament.
-          </Typography.Text>
-        </Space>
-      </Card>
+      <WorkspaceHeader
+        kicker="STABLE SETUP"
+        title="Register New Horse"
+        subtitle="Add a horse to your stable before choosing a jockey or entering tournaments"
+      />
 
       <Card>
         <Form
@@ -122,9 +129,33 @@ export default function OwnerHorseRegister() {
               <Form.Item
                 label="Color"
                 name="color"
-                rules={[{ required: true, message: "Enter horse color" }]}
+                rules={[
+                  { required: true, message: "Please select horse color" },
+                ]}
               >
-                <Input placeholder="Đỏ hạt dẻ" />
+                <Select
+                  placeholder="Select horse color"
+                  showSearch
+                  optionFilterProp="label"
+                  options={[
+                    { value: "Bay", label: "Bay" },
+                    { value: "Chestnut", label: "Chestnut" },
+                    { value: "Black", label: "Black" },
+                    { value: "Grey", label: "Grey" },
+                    { value: "Brown", label: "Brown" },
+                    { value: "Roan", label: "Roan" },
+                    { value: "Dun", label: "Dun" },
+                    {
+                      value: "Palomino",
+                      label: "Palomino",
+                    },
+                    {
+                      value: "Pinto / Paint",
+                      label: "Pinto / Paint",
+                    },
+                    { value: "White", label: "White" },
+                  ]}
+                />
               </Form.Item>
             </Col>
           </Row>
@@ -134,18 +165,48 @@ export default function OwnerHorseRegister() {
               <Form.Item
                 label="Height (m)"
                 name="height"
-                rules={[{ required: true, message: "Enter height" }]}
+                rules={[
+                  { required: true, message: "Enter height" },
+                  {
+                    type: "number",
+                    min: 0.5,
+                    max: 2.5,
+                    message: "Height must be between 0.5m and 2.5m",
+                  },
+                ]}
               >
-                <InputNumber min={0} precision={2} className="owner-input-full" placeholder="1.65" />
+                <InputNumber
+                  min={0.5}
+                  max={2.5}
+                  precision={2}
+                  step={0.01}
+                  className="owner-input-full"
+                  placeholder="1.65"
+                />
               </Form.Item>
             </Col>
             <Col xs={24} lg={12}>
               <Form.Item
                 label="Weight (kg)"
                 name="weight"
-                rules={[{ required: true, message: "Enter weight" }]}
+                rules={[
+                  { required: true, message: "Enter weight" },
+                  {
+                    type: "number",
+                    min: 50,
+                    max: 1500,
+                    message: "Weight must be between 50kg and 1500kg",
+                  },
+                ]}
               >
-                <InputNumber min={0} precision={1} className="owner-input-full" placeholder="450" />
+                <InputNumber
+                  min={50}
+                  max={1500}
+                  precision={1}
+                  step={1}
+                  className="owner-input-full"
+                  placeholder="450"
+                />
               </Form.Item>
             </Col>
           </Row>
@@ -161,7 +222,10 @@ export default function OwnerHorseRegister() {
           <Typography.Text strong>
             Horse image <span style={{ color: "#ff4d4f" }}>*</span>
           </Typography.Text>
-          <Typography.Paragraph type="secondary" style={{ margin: "4px 0 10px" }}>
+          <Typography.Paragraph
+            type="secondary"
+            style={{ margin: "4px 0 10px" }}
+          >
             You must upload an image before registering the horse.
           </Typography.Paragraph>
 

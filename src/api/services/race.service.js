@@ -35,6 +35,17 @@ export async function getMyRaces() {
     return unwrapCollection(response);
 }
 
+export async function getAdminRaceStats() {
+    const response = await apiClient.get(
+        RACE_ENDPOINTS.ADMIN_DASHBOARD_STATS,
+        {
+            includeAuth: true,
+        }
+    );
+
+    return unwrapData(response);
+}
+
 export async function getRacesByTournament(
     tournamentId,
     status = ""

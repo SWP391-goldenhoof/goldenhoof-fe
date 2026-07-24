@@ -1,6 +1,20 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Alert, Button, Card, Col, Empty, Row, Skeleton, Space, Statistic, Table, Tag, Typography } from "antd";
+import {
+  Alert,
+  Button,
+  Card,
+  Col,
+  Empty,
+  Row,
+  Skeleton,
+  Space,
+  Statistic,
+  Table,
+  Tag,
+  Typography,
+} from "antd";
 import { Link } from "react-router-dom";
+import WorkspaceHeader from "../../components/ui/WorkspaceHeader";
 import { getHorseById, getMyHorses } from "../../api/services/horse.service";
 import { getHorseStatusColor, horseCollectionFrom, isActiveHorse, normalizeHorse } from "./horseViewModel";
 
@@ -82,41 +96,156 @@ export default function OwnerDashboard() {
     {
       title: "Win rate",
       dataIndex: "winRate",
+      responsive: ["sm"],
       render: (value) => `${Number(value || 0).toFixed(2)}%`,
     },
   ];
 
   return (
     <Space direction="vertical" size={16} className="owner-page-stack">
+      <style>{`
+        .owner-page-stack {
+          width: 100%;
+        }
+
+        .owner-stat-card {
+          height: 100%;
+          border-radius: 12px;
+        }
+
+        .owner-stable-card .ant-card-head {
+          align-items: flex-start;
+          gap: 12px;
+        }
+
+        .owner-stable-actions {
+          display: flex;
+          flex-wrap: wrap;
+          justify-content: flex-end;
+          gap: 8px;
+        }
+
+        .owner-stable-actions .ant-btn {
+          min-width: 0;
+        }
+
+        .owner-table-wrap {
+          width: 100%;
+          overflow-x: auto;
+        }
+
+        .owner-table-wrap .ant-table-wrapper {
+          min-width: 0;
+        }
+
+        .owner-horse-card {
+          height: 100%;
+          border-radius: 12px;
+        }
+
+        .owner-horse-card .ant-card-head {
+          gap: 10px;
+        }
+
+        .owner-horse-card .ant-card-extra {
+          min-width: 0;
+        }
+
+        @media (max-width: 768px) {
+          .owner-stable-card .ant-card-head {
+            flex-direction: column;
+          }
+
+          .owner-stable-card .ant-card-head-title,
+          .owner-stable-card .ant-card-extra {
+            width: 100%;
+          }
+
+          .owner-stable-actions {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            width: 100%;
+          }
+
+          .owner-stable-actions a,
+          .owner-stable-actions .ant-btn {
+            width: 100%;
+          }
+
+          .owner-stable-actions .ant-btn {
+            padding-inline: 10px;
+            white-space: normal;
+            height: auto;
+            min-height: 38px;
+          }
+
+          .owner-table-wrap .ant-table {
+            min-width: 420px;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .owner-page-stack {
+            gap: 12px !important;
+          }
+
+          .owner-stable-actions {
+            grid-template-columns: 1fr;
+          }
+
+          .owner-stable-card .ant-card-body,
+          .owner-horse-card .ant-card-body {
+            padding: 16px;
+          }
+
+          .owner-table-wrap .ant-table {
+            min-width: 360px;
+          }
+
+          .owner-table-wrap .ant-table-cell {
+            padding: 10px 8px !important;
+          }
+        }
+      `}</style>
+
+      <WorkspaceHeader
+        kicker="STABLE OVERVIEW"
+        title="Owner Workspace"
+        subtitle="Manage your stable, horse profiles, and race readiness"
+        onRefresh={loadDashboard}
+        refreshLoading={loading}
+      />
+
       {errorMessage && <Alert type="warning" showIcon message={errorMessage} />}
 
       <Row gutter={[16, 16]}>
         <Col xs={24} sm={12} xl={6}>
-          <Card>
+          <Card className="owner-stat-card">
             <Statistic title="My horses" value={stats.total} />
           </Card>
         </Col>
         <Col xs={24} sm={12} xl={6}>
-          <Card>
+          <Card className="owner-stat-card">
             <Statistic title="Active horses" value={stats.active} />
           </Card>
         </Col>
         <Col xs={24} sm={12} xl={6}>
-          <Card>
+          <Card className="owner-stat-card">
             <Statistic title="Total wins" value={stats.totalWins} />
           </Card>
         </Col>
         <Col xs={24} sm={12} xl={6}>
-          <Card>
+          <Card className="owner-stat-card">
             <Statistic title="Average win rate" value={stats.averageWinRate} suffix="%" />
           </Card>
         </Col>
       </Row>
 
       <Card
+        className="owner-stable-card"
         title="Stable overview"
         extra={
-          <Space wrap>
+          <div className="owner-stable-actions">
             <Link to="/owner/horses">
               <Button>Manage horses</Button>
             </Link>
@@ -127,7 +256,7 @@ export default function OwnerDashboard() {
               <Button>Tournaments</Button>
             </Link>
             <Button onClick={loadDashboard}>Refresh</Button>
-          </Space>
+          </div>
         }
       >
         {loading ? (
@@ -142,12 +271,14 @@ export default function OwnerDashboard() {
             </Link>
           </Empty>
         ) : (
-          <Table
-            rowKey="id"
-            columns={columns}
-            dataSource={latestRows}
-            pagination={false}
-          />
+          <div className="owner-table-wrap">
+            <Table
+              rowKey="id"
+              columns={columns}
+              dataSource={latestRows}
+              pagination={false}
+            />
+          </div>
         )}
       </Card>
 
@@ -155,6 +286,7 @@ export default function OwnerDashboard() {
         {rows.slice(0, 3).map((horse) => (
           <Col key={horse.id} xs={24} md={8}>
             <Card
+              className="owner-horse-card"
               hoverable
               title={horse.name}
               extra={<Tag color={getHorseStatusColor(horse.status)}>{horse.status}</Tag>}

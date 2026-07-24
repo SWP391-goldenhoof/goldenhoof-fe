@@ -21,9 +21,13 @@ export async function createReward(payload) {
   return response.data;
 }
 
-export async function getRewards() {
+export async function getRewards(rewardType, conditionType) {
   const response = await apiClient.get(REWARD_ENDPOINTS.ROOT, {
     includeAuth: true,
+    params: {
+      ...(conditionType ? { conditionType } : {}),
+      ...(rewardType ? { rewardType } : {}),
+    },
   });
   return response.data;
 }

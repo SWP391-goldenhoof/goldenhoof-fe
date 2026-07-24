@@ -15,14 +15,17 @@ import {
 import "antd/dist/reset.css";
 import dayjs from "dayjs";
 import customParseFormat from "dayjs/plugin/customParseFormat";
+import utc from "dayjs/plugin/utc";
 import {
   approveWithdrawal,
   getAllWithdrawalRequests,
   getWithdrawalDetail,
   rejectWithdrawal,
 } from "../../api/services/withdrawal.service";
+import { useAdminTableFixedColumns } from "../../hooks/useAdminTableFixedColumns";
 
 dayjs.extend(customParseFormat);
+dayjs.extend(utc);
 
 const { Text, Title } = Typography;
 const { Search } = Input;
@@ -48,17 +51,8 @@ function formatDate(value) {
   if (typeof value === "string" && value.includes("/")) {
     return value;
   }
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-
-  return new Intl.DateTimeFormat("en-GB", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-  }).format(date);
+  const date = dayjs.utc(value);
+  return date.isValid() ? date.format("DD/MM/YYYY HH:mm:ss") : value;
 }
 
 function getTimeValue(value) {
@@ -133,17 +127,23 @@ export default function AdminWithdrawalManagement() {
   const [searchKey, setSearchKey] = useState("");
   const [selectedStatus, setSelectedStatus] = useState(null);
   const [loadingDetailId, setLoadingDetailId] = useState(null);
+  const shouldFixColumns = useAdminTableFixedColumns();
 
-  async function loadWithdrawals() {
+  async function loadWithdrawals({
+    status = selectedStatus,
+    search = searchKey,
+  } = {}) {
     setIsLoading(true);
     try {
-      const response = await getAllWithdrawalRequests();
+      const response = await getAllWithdrawalRequests({
+        status,
+        search: search?.trim(),
+      });
       setRequests(
         resolveList(response)
           .map(normalizeWithdrawal)
           .sort(sortNewestRequestFirst),
       );
-      setSearchKey("");
     } catch (error) {
       message.error(
         error?.message || "Failed to load withdrawal requests list",
@@ -157,17 +157,7 @@ export default function AdminWithdrawalManagement() {
     loadWithdrawals();
   }, []);
 
-  const filteredRequests = useMemo(() => {
-    return requests.filter((req) => {
-      const matchStatus = selectedStatus ? req.status === selectedStatus : true;
-      const matchSearch = searchKey
-        ? req.fullName.toLowerCase().includes(searchKey.toLowerCase()) ||
-          req.email.toLowerCase().includes(searchKey.toLowerCase()) ||
-          req.accountNumber.includes(searchKey)
-        : true;
-      return matchStatus && matchSearch;
-    });
-  }, [requests, selectedStatus, searchKey]);
+  const filteredRequests = useMemo(() => requests, [requests]);
 
   async function openDetailModal(id) {
     setLoadingDetailId(id);
@@ -235,7 +225,7 @@ export default function AdminWithdrawalManagement() {
       {
         title: "Requester",
         dataIndex: "fullName",
-        fixed: "left",
+        fixed: shouldFixColumns ? "left" : undefined,
         width: 180,
         render: (text, record) => (
           <div>
@@ -288,13 +278,13 @@ export default function AdminWithdrawalManagement() {
       {
         title: "Actions",
         key: "actions",
-        fixed: "right",
+        fixed: shouldFixColumns ? "right" : undefined,
         width: 180,
         render: (_, record) => (
           <Space>
             <Button
+              className="withdrawal-management-link-btn"
               size="small"
-              type="primary"
               ghost
               loading={loadingDetailId === record.id}
               onClick={() => openDetailModal(record.id)}
@@ -305,7 +295,11 @@ export default function AdminWithdrawalManagement() {
               <Button
                 className="withdrawal-management-link-btn"
                 size="small"
-                style={{ width: 85, textAlign: "center" }}
+                style={{
+                  width: 85,
+                  textAlign: "center",
+                  backgroundColor: "#69f8dd",
+                }}
                 onClick={() => openActionModal(record)}
               >
                 Process
@@ -324,7 +318,7 @@ export default function AdminWithdrawalManagement() {
         ),
       },
     ],
-    [isDetailLoading],
+    [isDetailLoading, shouldFixColumns],
   );
 
   return (
@@ -447,10 +441,19 @@ export default function AdminWithdrawalManagement() {
         </div>
         <div className="withdrawal-management-actions">
           <Select
-            placeholder="Filter by status"
+            placeholder="Status"
             allowClear
+            value={selectedStatus}
             style={{ width: 180 }}
-            onChange={(val) => setSelectedStatus(val)}
+            onChange={(val) => {
+              const nextStatus = val || null;
+              setSelectedStatus(nextStatus);
+              loadWithdrawals({ status: nextStatus, search: searchKey });
+            }}
+            onClear={() => {
+              setSelectedStatus(null);
+              loadWithdrawals({ status: "", search: searchKey });
+            }}
           >
             <Select.Option value="PENDING">PENDING</Select.Option>
             <Select.Option value="APPROVED">APPROVED</Select.Option>
@@ -459,16 +462,23 @@ export default function AdminWithdrawalManagement() {
 
           <Search
             className="withdrawal-management-search-input"
-            placeholder="Search by name, email, account no..."
+            placeholder="Search by User name"
             allowClear
             enterButton="Search"
             size="middle"
             value={searchKey}
             onChange={(e) => setSearchKey(e.target.value)}
+            onSearch={(value) =>
+              loadWithdrawals({ status: selectedStatus, search: value })
+            }
+            onClear={() => {
+              setSearchKey("");
+              loadWithdrawals({ status: selectedStatus, search: "" });
+            }}
           />
           <Button
             className="withdrawal-management-refresh"
-            onClick={loadWithdrawals}
+            onClick={() => loadWithdrawals()}
             loading={isLoading}
           >
             Refresh
@@ -583,14 +593,23 @@ export default function AdminWithdrawalManagement() {
             size="small"
             style={{ marginTop: 15 }}
           >
+            <Descriptions.Item label="Request ID">
+              {detailData._id || detailData.id}
+            </Descriptions.Item>
             <Descriptions.Item label="Requested By">
               {detailData.userId?.fullName}
+            </Descriptions.Item>
+            <Descriptions.Item label="User ID">
+              {detailData.userId?._id ||
+                detailData.userId?.id ||
+                detailData.userId ||
+                "N/A"}
             </Descriptions.Item>
             <Descriptions.Item label="Contact Email">
               {detailData.userId?.email}
             </Descriptions.Item>
             <Descriptions.Item label="System Role">
-              {detailData.userId?.role}
+              <span style={{ color: "green" }}>{detailData.userId?.role}</span>
             </Descriptions.Item>
             <Descriptions.Item label="Transaction Bank">
               {detailData.bankName}

@@ -1,15 +1,18 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { io } from "socket.io-client";
 import { Link, useParams } from "react-router-dom";
+import { createReplaySession } from "../../api/services/broadcast.service";
 import { getRaceById } from "../../api/services/race.service";
 import { getSimulationResult } from "../../api/services/simulation.service";
 import { getAccessToken } from "../../utils/storage";
 import "./Broadcast.css";
+import { getHorses } from "../../api/services/horse.service";
 
 const TICK_DURATION_SECONDS = 0.5;
 // v2 only contains results received from the spectator socket's race_finished.
 // The previous cache could contain referee/raw simulation data.
 const RESULT_CACHE_PREFIX = "goldenhoof_broadcast_result_v2_";
+const FINISHED_TRACK_CACHE_PREFIX = "goldenhoof_finished_track_v1_";
 
 const COLORS = [
   "#ef4444",
@@ -242,11 +245,106 @@ function clearCachedResults(raceId) {
   }
 }
 
+function normalizeHorseId(value) {
+  if (!value) return "";
+  if (typeof value === "string") return value;
+
+  return (
+    value.horseId?._id ||
+    value.horseId?.id ||
+    value.horseId?.horseId ||
+    value.horseId ||
+    value.horse?._id ||
+    value.horse?.id ||
+    value.horse?.horseId?._id ||
+    value.horse?.horseId?.id ||
+    value.horse?.horseId ||
+    value._id ||
+    value.id ||
+    ""
+  );
+}
+
+function readCachedFinishedTrack(raceId) {
+  if (!raceId) return [];
+  try {
+    const cached = JSON.parse(
+      window.localStorage.getItem(`${FINISHED_TRACK_CACHE_PREFIX}${raceId}`),
+    );
+    return Array.isArray(cached?.horses) ? cached.horses : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveCachedFinishedTrack(raceId, horses) {
+  if (!raceId || !Array.isArray(horses)) return;
+  const finishedHorses = horses
+    .filter((horse) => Number(horse.progress) >= 1)
+    .map((horse) => ({
+      horseId: normalizeHorseId(horse),
+      lane: horse.lane,
+      progress: 1,
+      color: horse.color,
+      icon: horse.icon,
+      instant: true,
+      finished: true,
+    }))
+    .filter((horse) => horse.horseId);
+
+  try {
+    const previous = readCachedFinishedTrack(raceId);
+    const byHorseId = new Map(
+      previous.map((horse) => [String(horse.horseId), horse]),
+    );
+    finishedHorses.forEach((horse) => {
+      byHorseId.set(String(horse.horseId), horse);
+    });
+
+    window.localStorage.setItem(
+      `${FINISHED_TRACK_CACHE_PREFIX}${raceId}`,
+      JSON.stringify({
+        horses: [...byHorseId.values()],
+        savedAt: new Date().toISOString(),
+      }),
+    );
+  } catch {
+    // Track cache is only a UI recovery path.
+  }
+}
+
+function clearCachedFinishedTrack(raceId) {
+  if (!raceId) return;
+  try {
+    window.localStorage.removeItem(`${FINISHED_TRACK_CACHE_PREFIX}${raceId}`);
+  } catch {
+    // A live socket session can continue even when storage is unavailable.
+  }
+}
+
+function mergeTrackHorses(primary, fallback) {
+  const byHorseId = new Map();
+
+  [...fallback, ...primary].forEach((horse) => {
+    const horseId = normalizeHorseId(horse);
+    if (!horseId) return;
+    byHorseId.set(String(horseId), {
+      ...horse,
+      horseId: String(horseId),
+      progress: Math.min(1, Math.max(0, Number(horse.progress) || 0)),
+    });
+  });
+
+  return [...byHorseId.values()].sort(
+    (first, second) => Number(first.lane) - Number(second.lane),
+  );
+}
+
 function createTrack(horses) {
   return [...horses]
     .sort((a, b) => a.lane - b.lane)
     .map((horse, index) => ({
-      horseId: horse.horseId,
+      horseId: normalizeHorseId(horse),
       lane: horse.lane,
       progress: Math.min(1, Math.max(0, Number(horse.progress) || 0)),
       color: COLORS[index % COLORS.length],
@@ -255,8 +353,9 @@ function createTrack(horses) {
     }));
 }
 
-export default function Broadcast() {
+export function BroadcastExperience({ mode = "live" }) {
   const { raceId = "" } = useParams();
+  const isReplayMode = mode === "replay";
   const token = getAccessToken() || "";
   const host = import.meta.env.VITE_API_BASE_URL || "http://localhost:9000";
   const [connection, setConnection] = useState({
@@ -271,12 +370,16 @@ export default function Broadcast() {
   const [, setLogs] = useState([]);
   const [results, setResults] = useState([]);
   const [raceStartAt, setRaceStartAt] = useState(null);
+  const [allHorsesMap, setAllHorsesMap] = useState(new Map());
+  const [isReplayStarting, setIsReplayStarting] = useState(false);
+  const [replayMessage, setReplayMessage] = useState("");
 
   const socketRef = useRef(null);
   const activeRaceRef = useRef("");
   const requestedRaceRef = useRef("");
   const trackInitializedRef = useRef(false);
   const finishedRef = useRef(false);
+  const replayStartedRef = useRef("");
   const sessionVersionRef = useRef(0);
   const logIdRef = useRef(0);
 
@@ -322,8 +425,9 @@ export default function Broadcast() {
   const initializeTrack = useCallback((horseList) => {
     if (!Array.isArray(horseList) || !horseList.length) return;
     trackInitializedRef.current = true;
-    setHorses(createTrack(horseList));
-  }, []);
+    const cachedFinished = readCachedFinishedTrack(raceId);
+    setHorses(createTrack(mergeTrackHorses(horseList, cachedFinished)));
+  }, [raceId]);
 
   const updateTrack = useCallback((horseList, instant) => {
     if (!Array.isArray(horseList)) return;
@@ -334,8 +438,8 @@ export default function Broadcast() {
       ]),
     );
 
-    setHorses((previous) =>
-      previous.map((horse) =>
+    setHorses((previous) => {
+      const next = previous.map((horse) =>
         progressById.has(horse.horseId)
           ? {
               ...horse,
@@ -343,9 +447,12 @@ export default function Broadcast() {
               instant,
             }
           : horse,
-      ),
-    );
-  }, []);
+      );
+
+      saveCachedFinishedTrack(raceId, next);
+      return next;
+    });
+  }, [raceId]);
 
   const disconnect = useCallback(() => {
     const socket = socketRef.current;
@@ -492,6 +599,26 @@ export default function Broadcast() {
       setIsCatchUp(false);
       if (data?.tickNumber != null) setCurrentTick(data.tickNumber);
       const sortedResults = normalizeResults(data?.results || data);
+      setHorses((previous) => {
+        const finishedFromResults = sortedResults.map((result, index) => {
+          const previousHorse = previous.find(
+            (horse) => horse.horseId === result.horseId,
+          );
+
+          return {
+            horseId: result.horseId,
+            lane: previousHorse?.lane || index + 1,
+            progress: 1,
+            color: previousHorse?.color,
+            icon: previousHorse?.icon,
+            instant: true,
+            finished: true,
+          };
+        });
+        const next = createTrack(mergeTrackHorses(previous, finishedFromResults));
+        saveCachedFinishedTrack(raceId, next);
+        return next;
+      });
       setResults(sortedResults);
       saveCachedResults(raceId, sortedResults);
       try {
@@ -551,9 +678,84 @@ export default function Broadcast() {
     resetRace();
   }, [addLog, raceId, resetRace]);
 
+  const handleReplay = useCallback(async () => {
+    const cleanRaceId = raceId.trim();
+    if (!cleanRaceId) {
+      setReplayMessage("Missing race ID.");
+      return;
+    }
+
+    sessionVersionRef.current += 1;
+    trackInitializedRef.current = false;
+    finishedRef.current = false;
+    setHorses([]);
+    setCurrentTick(null);
+    setIsCatchUp(false);
+    setIsFinished(false);
+    setResults([]);
+    setIsReplayStarting(true);
+    setReplayMessage("Starting replay...");
+
+    try {
+      await createReplaySession(cleanRaceId);
+      clearCachedFinishedTrack(cleanRaceId);
+      setReplayMessage("Replay started.");
+      addLog("Replay started.", "system");
+    } catch (error) {
+      const message =
+        error?.response?.data?.message ||
+        error?.message ||
+        "Cannot start replay.";
+      setReplayMessage(message);
+      addLog(message, "error");
+    } finally {
+      setIsReplayStarting(false);
+    }
+  }, [addLog, raceId]);
+
+  useEffect(() => {
+    const fetchAllHorses = async () => {
+      try {
+        // Giả sử getMyHorses trả về array chứa object có name và id/_id
+        const data = await getHorses();
+        const horseMap = new Map();
+        if (Array.isArray(data)) {
+          data.forEach((h) => {
+            const id = h.id || h._id;
+            if (id) horseMap.set(id, h.name || "Unknown");
+          });
+        }
+        setAllHorsesMap(horseMap);
+      } catch (error) {
+        console.error("Could not load horses mapping:", error);
+      }
+    };
+    fetchAllHorses();
+  }, []);
+
   useEffect(() => {
     connect();
   }, [connect]);
+
+  useEffect(() => {
+    replayStartedRef.current = "";
+    setReplayMessage("");
+  }, [isReplayMode, raceId]);
+
+  useEffect(() => {
+    const cleanRaceId = raceId.trim();
+    if (
+      !isReplayMode ||
+      !cleanRaceId ||
+      joinedRaceId !== cleanRaceId ||
+      replayStartedRef.current === cleanRaceId
+    ) {
+      return;
+    }
+
+    replayStartedRef.current = cleanRaceId;
+    handleReplay();
+  }, [handleReplay, isReplayMode, joinedRaceId, raceId]);
 
   useEffect(() => {
     let isMounted = true;
@@ -563,6 +765,11 @@ export default function Broadcast() {
     finishedRef.current = false;
 
     const cachedResults = readCachedResults(raceId);
+    const cachedFinishedTrack = readCachedFinishedTrack(raceId);
+    if (cachedFinishedTrack.length) {
+      trackInitializedRef.current = true;
+      setHorses(createTrack(cachedFinishedTrack));
+    }
     if (cachedResults.length) {
       setResults(cachedResults);
       setIsFinished(true);
@@ -642,40 +849,26 @@ export default function Broadcast() {
         </header>
 
         <section className="broadcast-controls" aria-label="Socket controls">
-          <div className="selected-race">
-            <span>Current Channel</span>
-            <strong>Live Race</strong>
-          </div>
-          <div className="broadcast-button-row">
-            <button type="button" className="accent" onClick={joinRace}>
-              Reconnect
-            </button>
-            <button type="button" onClick={leaveRace}>
-              Leave Race
-            </button>
-          </div>
-          <div className="broadcast-button-row socket-buttons">
+          {isReplayMode && (
             <button
               type="button"
-              className="primary"
-              onClick={connect}
-              disabled={connection.state === "connecting"}
+              className="replay-action"
+              onClick={handleReplay}
+              disabled={isReplayStarting}
             >
-              Connect
+              {isReplayStarting ? "Starting replay..." : "Watch replay"}
             </button>
-            <button type="button" onClick={disconnect}>
-              Disconnect
-            </button>
-          </div>
+          )}
           <Link className="channel-back-link" to="/spectator/broadcast">
             ← Select another channel
           </Link>
-          {joinedRaceId && (
-            <p className="joined-race">
-              <strong>✓ Connected to race</strong>
-            </p>
-          )}
         </section>
+
+        {isReplayMode && replayMessage && (
+          <p className="replay-status" role="status">
+            {replayMessage}
+          </p>
+        )}
 
         <section className="broadcast-grid">
           <div className="broadcast-card track-card">
@@ -707,7 +900,7 @@ export default function Broadcast() {
                     <span className="finish-line">FINISH</span>
                     <span
                       className="horse-runner"
-                      title={horse.horseId}
+                      title={allHorsesMap.get(horse.horseId) || horse.horseId}
                       style={{
                         "--horse-color": horse.color,
                         "--horse-progress": `${horse.progress * 100}%`,
@@ -755,7 +948,10 @@ export default function Broadcast() {
                   <strong>
                     {["🥇", "🥈", "🥉"][horse.rank - 1] || `#${horse.rank}`}
                   </strong>
-                  <span title={horse.horseId}>{shortId(horse.horseId, 8)}</span>
+                  <span title={horse.horseId}>
+                    {allHorsesMap.get(horse.horseId) ||
+                      shortId(horse.horseId, 8)}
+                  </span>
                   <span>{horse.lane}</span>
                   <span>{(horse.progress * 100).toFixed(1)}%</span>
                 </div>
@@ -800,7 +996,11 @@ export default function Broadcast() {
                             {medal && `#${result.rawRank}`}
                           </strong>
                         </td>
-                        <td title={result.horseId}>{result.horseId}</td>
+                        <td title={result.horseId}>
+                          {allHorsesMap.get(result.horseId)
+                            ? `${allHorsesMap.get(result.horseId)} (${shortId(result.horseId, 6)})`
+                            : result.horseId}
+                        </td>
                         <td>
                           {formatSeconds(
                             finishElapsedSeconds(
@@ -820,4 +1020,8 @@ export default function Broadcast() {
       </section>
     </main>
   );
+}
+
+export default function Broadcast() {
+  return <BroadcastExperience mode="live" />;
 }

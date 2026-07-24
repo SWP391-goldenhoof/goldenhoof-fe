@@ -20,8 +20,19 @@ export async function createBet(payload) {
   return unwrapData(response);
 }
 
-export async function getAllBets() {
+export async function getAllBets({ result } = {}) {
   const response = await apiClient.get(BET_ENDPOINTS.ROOT, {
+    includeAuth: true,
+    params: {
+      ...(result ? { result } : {}),
+    },
+  });
+
+  return unwrapData(response);
+}
+
+export async function getAdminBetStats() {
+  const response = await apiClient.get(BET_ENDPOINTS.ADMIN_DASHBOARD_STATS, {
     includeAuth: true,
   });
 

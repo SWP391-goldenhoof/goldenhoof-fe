@@ -1,0 +1,240 @@
+/* ===========================
+   MODAL
+=========================== */
+.horse-modal .ant-modal-content {
+    background: linear-gradient(145deg, #0b3d37, #104941);
+    border-radius: 24px;
+    overflow: hidden;
+    border: 1px solid rgba(46, 196, 182, .15);
+    box-shadow:
+        0 20px 50px rgba(0, 0, 0, .45);
+}
+
+.horse-modal .ant-modal-header {
+    background: linear-gradient(135deg, #0b5d52, #14776b);
+    border-bottom: 1px solid rgba(46, 196, 182, .15);
+    padding: 22px 28px;
+}
+
+.horse-modal .ant-modal-title {
+    color: white !important;
+    font-size: 28px;
+    font-weight: 800;
+}
+
+.horse-modal .ant-modal-body {
+    padding: 30px;
+    background: transparent;
+}
+
+.horse-modal .ant-modal-close {
+    color: white;
+}
+
+.horse-modal .ant-modal-close:hover {
+    background: rgba(255, 255, 255, .08);
+    color: #2ec4b6;
+}
+
+/* ===========================
+   HERO CARD
+=========================== */
+.horse-hero-card {
+    background:
+        linear-gradient(145deg, #11544c, #0f4b43);
+    border-radius: 22px;
+    border: 1px solid rgba(46, 196, 182, .12);
+    margin-bottom: 26px;
+    transition: .3s;
+}
+
+.horse-hero-card:hover {
+    transform: translateY(-3px);
+    box-shadow:
+        0 18px 35px rgba(0, 0, 0, .28);
+}
+
+/* ===========================
+   AVATAR
+=========================== */
+.horse-avatar {
+    border-radius: 20px !important;
+    border: 4px solid #2ec4b6;
+    box-shadow:
+        0 0 0 6px rgba(46, 196, 182, .12),
+        0 14px 28px rgba(0, 0, 0, .28);
+    object-fit: cover;
+}
+
+/* ===========================
+   NAME
+=========================== */
+.horse-name {
+    color: white !important;
+    font-weight: 800 !important;
+    margin-bottom: 12px !important;
+}
+
+/* ===========================
+   TAG
+=========================== */
+.horse-status-tag {
+    border: none;
+    border-radius: 999px;
+    font-weight: 700;
+    padding: 4px 16px;
+}
+
+.horse-color-tag {
+    background: #d4af37 !important;
+    color: white !important;
+    border: none;
+    border-radius: 999px;
+    font-weight: 700;
+    padding: 4px 16px;
+}
+
+/* ===========================
+   DIVIDER
+=========================== */
+
+.horse-divider {
+    border-color: rgba(46, 196, 182, .2);
+    margin: 22px 0;
+}
+
+/* ===========================
+   STATISTIC
+=========================== */
+.horse-stat {
+    background: #14554b;
+    border-radius: 16px;
+    padding: 18px;
+    text-align: center;
+    transition: .25s;
+}
+
+.horse-stat:hover {
+    background: #17675c;
+}
+
+.horse-stat .ant-statistic-title {
+    color: #98e8dc !important;
+    font-weight: 600;
+}
+
+.horse-stat .ant-statistic-content {
+    color: white !important;
+    font-weight: 800;
+    font-size: 28px;
+}
+
+/* ===========================
+   INFO CARD
+=========================== */
+.horse-info-card {
+    background:
+        linear-gradient(145deg, #11544c, #0f4b43);
+    border-radius: 20px;
+    border: 1px solid rgba(46, 196, 182, .12);
+    height: 100%;
+    transition: .3s;
+}
+
+.horse-info-card:hover {
+    transform: translateY(-3px);
+    box-shadow:
+        0 16px 32px rgba(0, 0, 0, .24);
+}
+
+.horse-info-card .ant-card-head {
+    background: #0b4c44;
+    border-bottom: 1px solid rgba(46, 196, 182, .15);
+}
+
+.horse-info-card .ant-card-head-title {
+    color: white;
+    font-size: 18px;
+    font-weight: 700;
+}
+
+.horse-info-card .ant-card-body {
+    background: transparent;
+}
+
+/* ===========================
+   DESCRIPTIONS
+=========================== */
+.horse-description .ant-descriptions-item-label {
+    background: #0b4c44 !important;
+    color: #76f3e3 !important;
+    font-weight: 700;
+}
+
+.horse-description .ant-descriptions-item-content {
+    background: #14554b !important;
+    color: white !important;
+}
+
+.horse-description .ant-descriptions-view {
+    border-radius: 16px;
+    overflow: hidden;
+}
+
+/* ===========================
+   COPY ID
+=========================== */
+.horse-id {
+    color: #9ce9dd !important;
+}
+
+/* ===========================
+   LOADING
+=========================== */
+
+.horse-loading {
+    text-align: center;
+    padding: 90px;
+}
+
+/* ===========================
+   EMPTY
+=========================== */
+.horse-empty {
+    padding: 60px;
+    text-align: center;
+}
+
+.horse-empty .ant-empty-description {
+    color: white;
+}
+
+/* ===========================
+   RESPONSIVE
+=========================== */
+@media(max-width:768px) {
+    .horse-modal .ant-modal {
+        max-width: 95vw;
+    }
+
+    .horse-modal .ant-modal-body {
+        padding: 20px;
+    }
+
+    .horse-avatar {
+        width: 140px !important;
+        height: 140px !important;
+    }
+
+    .horse-name {
+        text-align: center;
+    }
+
+    .horse-info-card {
+        margin-bottom: 20px;
+    }
+
+    .horse-stat {
+        margin-bottom: 16px;
+    }
+}

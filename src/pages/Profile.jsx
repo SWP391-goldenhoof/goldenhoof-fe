@@ -28,11 +28,12 @@ import {
 } from "../api/services/user.service";
 import { clearAuthSession, getAuthSession } from "../utils/storage";
 import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
 import customParseFormat from "dayjs/plugin/customParseFormat"; // Hỗ trợ parse định dạng chuỗi VN
 import { getMyStreakStatus } from "../api/services/streak.service";
 import { getMyAssets } from "../api/services/reward.service";
-
 dayjs.extend(customParseFormat);
+dayjs.extend(utc);
 
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 const BASE_IMAGE_URL = API_BASE_URL;
@@ -816,9 +817,9 @@ function Profile() {
                           <div className="streak-meta-item">
                             Last active:{" "}
                             <Text style={{ color: "#ccefe7" }}>
-                              {dayjs(new Date(streakData.lastLoginDate)).format(
-                                "DD/MM/YYYY",
-                              )}
+                              {dayjs
+                                .utc(streakData.lastLoginDate)
+                                .format("DD/MM/YYYY")}
                             </Text>
                           </div>
                         </div>

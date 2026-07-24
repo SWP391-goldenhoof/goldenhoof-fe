@@ -17,15 +17,9 @@ import {
   Upload,
   message,
 } from "antd";
-import {
-  DeleteOutlined,
-  EyeOutlined,
-  GiftOutlined,
-  TrophyOutlined,
-  UploadOutlined,
-} from "@ant-design/icons";
 import dayjs from "dayjs";
 import customParseFormat from "dayjs/plugin/customParseFormat";
+import utc from "dayjs/plugin/utc";
 import { useNavigate } from "react-router-dom";
 import "antd/dist/reset.css";
 import {
@@ -42,8 +36,10 @@ import {
   createRaceBatch,
   createRound2Race,
 } from "../../api/services/race.service";
+import { useAdminTableFixedColumns } from "../../hooks/useAdminTableFixedColumns";
 
 dayjs.extend(customParseFormat);
+dayjs.extend(utc);
 
 const { Title, Text } = Typography;
 
@@ -75,25 +71,68 @@ function buildRaceStartTime(date, time) {
 
 function formatDateTime(value) {
   if (!value) return "N/A";
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-
-  return new Intl.DateTimeFormat("vi-VN", {
-    dateStyle: "short",
-    timeStyle: "short",
-  }).format(date);
+  const date = dayjs.utc(value);
+  return date.isValid() ? date.format("DD/MM/YYYY HH:mm") : value;
 }
 
 function toDatePickerValue(value) {
   if (!value) return null;
 
-  const parsed =
-    dayjs(value, "DD/MM/YYYY", true).isValid()
-      ? dayjs(value, "DD/MM/YYYY", true)
-      : dayjs(value);
+  const parsed = dayjs(value, "DD/MM/YYYY", true).isValid()
+    ? dayjs(value, "DD/MM/YYYY", true)
+    : dayjs(value);
 
   return parsed.isValid() ? parsed : null;
+}
+
+function parseTournamentDate(value) {
+  if (!value) return null;
+
+  const parsed = dayjs(value, "DD/MM/YYYY", true).isValid()
+    ? dayjs(value, "DD/MM/YYYY", true)
+    : dayjs(value);
+
+  return parsed.isValid() ? parsed : null;
+}
+
+function toDateInputValue(value) {
+  const parsed = parseTournamentDate(value);
+
+  return parsed ? parsed.format("YYYY-MM-DD") : "";
+}
+
+function toRaceDateValue(value) {
+  return parseTournamentDate(value);
+}
+
+function normalizeRaceDateValue(value) {
+  if (dayjs.isDayjs(value)) {
+    return value.format("YYYY-MM-DD");
+  }
+
+  return toDateInputValue(value);
+}
+
+function isOutsidePeriod(date, startDate, endDate) {
+  const parsedStartDate = parseTournamentDate(startDate);
+  const parsedEndDate = parseTournamentDate(endDate);
+
+  if (!date || !parsedStartDate || !parsedEndDate) return false;
+
+  return (
+    date.isBefore(parsedStartDate, "day") || date.isAfter(parsedEndDate, "day")
+  );
+}
+
+function formatTournamentPeriod(startDate, endDate) {
+  const parsedStartDate = parseTournamentDate(startDate);
+  const parsedEndDate = parseTournamentDate(endDate);
+
+  if (!parsedStartDate || !parsedEndDate) {
+    return "Tournament period is unavailable";
+  }
+
+  return `${parsedStartDate.format("DD/MM/YYYY")} - ${parsedEndDate.format("DD/MM/YYYY")}`;
 }
 
 function getUploadedBannerUrl(response) {
@@ -114,9 +153,18 @@ function normalizeAdvancement(item, index) {
 
   return {
     key: item?._id || item?.id || `advancement-${index}`,
+    id: item?._id || item?.id || "N/A",
+    horseId:
+      typeof horse === "string" ? horse : horse?._id || horse?.id || "N/A",
     horseName: horse?.name || "N/A",
     horseColor: horse?.color || "N/A",
+    fromRaceId:
+      typeof fromRace === "string"
+        ? fromRace
+        : fromRace?._id || fromRace?.id || "N/A",
     fromRaceName: fromRace?.name || "N/A",
+    toRaceId:
+      item?.toRaceId?._id || item?.toRaceId?.id || item?.toRaceId || "N/A",
     advancedAt: item?.advancedAt || item?.createdAt || "",
   };
 }
@@ -203,6 +251,7 @@ function TournamentManagement() {
   const [advancementTournament, setAdvancementTournament] = useState(null);
   const [advancements, setAdvancements] = useState([]);
   const [isAdvancementsLoading, setIsAdvancementsLoading] = useState(false);
+  const shouldFixColumns = useAdminTableFixedColumns();
 
   async function loadTournaments(status = filterStatus) {
     setIsLoading(true);
@@ -255,7 +304,7 @@ function TournamentManagement() {
       startDate: values.startDate.format("DD/MM/YYYY"),
       endDate: values.endDate.format("DD/MM/YYYY"),
       totalRounds: 2,
-      totalRaces: 3,
+      // totalRaces: 3,
     };
 
     setIsSaving(true);
@@ -271,6 +320,21 @@ function TournamentManagement() {
       setCreatedTournament({
         id: tournamentId,
         title: response?.title || payload.title,
+        startDate: response?.startDate || payload.startDate,
+        endDate: response?.endDate || payload.endDate,
+      });
+      round1Form.setFieldsValue({
+        races: [
+          {
+            name: "Vong 1 - Race 1",
+            date: toRaceDateValue(response?.startDate || payload.startDate),
+            startTime: "08:00",
+          },
+        ],
+      });
+      round2Form.setFieldsValue({
+        date: toRaceDateValue(response?.endDate || payload.endDate),
+        startTime: "08:00",
       });
       setSetupStep(1);
       message.success("Tournament created. Continue with Round 1 races.");
@@ -291,7 +355,11 @@ function TournamentManagement() {
         tournamentId: createdTournament.id,
         races: values.races.map((race) => ({
           ...race,
-          startTime: buildRaceStartTime(race.date, race.startTime),
+          date: normalizeRaceDateValue(race.date),
+          startTime: buildRaceStartTime(
+            normalizeRaceDateValue(race.date),
+            race.startTime,
+          ),
         })),
       });
       setSetupStep(2);
@@ -310,8 +378,11 @@ function TournamentManagement() {
 
     try {
       await createRound2Race(createdTournament.id, {
-        date: values.date,
-        startTime: buildRaceStartTime(values.date, values.startTime),
+        date: normalizeRaceDateValue(values.date),
+        startTime: buildRaceStartTime(
+          normalizeRaceDateValue(values.date),
+          values.startTime,
+        ),
       });
       message.success("Tournament and race setup completed");
       await finishSetupWizard();
@@ -328,7 +399,10 @@ function TournamentManagement() {
     try {
       const response = await getTournamentById(record.id);
 
-      setDetailTournament(response);
+      setDetailTournament({
+        ...normalizeTournamentDetail(response),
+        id: response?._id || response?.id || record.id,
+      });
       setIsDetailModalOpen(true);
     } catch (error) {
       message.error(error?.message || "Unable to load tournament detail");
@@ -356,6 +430,7 @@ function TournamentManagement() {
         location: tournament.location,
         horsesPerRace: tournament.horsesPerRace,
         entryFee: tournament.entryFee,
+        totalRaces: tournament.totalRaces,
       });
     } catch (error) {
       message.error(error?.message || "Unable to load tournament detail");
@@ -372,8 +447,8 @@ function TournamentManagement() {
       endDate: values.endDate.format("DD/MM/YYYY"),
       ...(!editingTournament
         ? {
-            totalRounds: 2,
-            totalRaces: 3,
+            totalRounds: values.totalRounds,
+            totalRaces: values.totalRaces,
           }
         : {}),
     };
@@ -495,64 +570,67 @@ function TournamentManagement() {
       {
         title: "Title",
         dataIndex: "title",
-        fixed: "left",
-        width: 260,
+        fixed: shouldFixColumns ? "left" : undefined,
+        width: 100,
         render: (value) => <Text strong>{value}</Text>,
       },
       {
         title: "Start Date",
         dataIndex: "startDate",
-        width: 130,
+        width: 50,
       },
       {
         title: "End Date",
         dataIndex: "endDate",
-        width: 130,
+        width: 50,
       },
-      {
-        title: "Location",
-        dataIndex: "location",
-        width: 260,
-        ellipsis: true,
-      },
+      // {
+      //   title: "Location",
+      //   dataIndex: "location",
+      //   width: 260,
+      //   ellipsis: true,
+      // },
       {
         title: "Status",
         dataIndex: "status",
-        width: 140,
+        width: 50,
         render: (status) => <Tag color={statusColor(status)}>{status}</Tag>,
       },
       {
         title: "Available Slot",
         dataIndex: "availableSlot",
-        width: 130,
+        width: 50,
       },
       {
         title: "Actions",
         key: "actions",
-        fixed: "right",
-        width: 340,
+        fixed: shouldFixColumns ? "right" : undefined,
+        width: 90,
         render: (_, record) => (
           <Space>
             <Button
-              type="text"
-              icon={<EyeOutlined />}
+              className="tournament-management-link-btn"
+              size="small"
               onClick={() => openDetailModal(record)}
-            />
+            >
+              Detail
+            </Button>
 
-            <Tooltip title="View advancements">
+            <Tooltip title="View qualified horses">
               <Button
-                type="text"
-                icon={<TrophyOutlined />}
+                className="tournament-management-link-btn"
+                size="small"
                 onClick={() => openAdvancementsModal(record)}
-              />
+              >
+                Qualified
+              </Button>
             </Tooltip>
 
-            {record.status === "Completed" && (
+            {/* {record.status === "Completed" && (
               <Tooltip title="Award tournament prize">
                 <Button
                   className="tournament-management-link-btn"
                   size="small"
-                  icon={<GiftOutlined />}
                   onClick={() =>
                     navigate(`/admin/prize?tournamentId=${record.id}`)
                   }
@@ -560,7 +638,7 @@ function TournamentManagement() {
                   Award Prize
                 </Button>
               </Tooltip>
-            )}
+            )} */}
 
             <Button
               className="tournament-management-link-btn"
@@ -586,13 +664,15 @@ function TournamentManagement() {
               okButtonProps={{ danger: true, loading: isSaving }}
               onConfirm={() => handleDeleteTournament(record)}
             >
-              <Button type="text" danger icon={<DeleteOutlined />} />
+              <Button size="small" danger>
+                Delete
+              </Button>
             </Popconfirm>
           </Space>
         ),
       },
     ],
-    [isSaving],
+    [isSaving, shouldFixColumns],
   );
 
   return (
@@ -707,6 +787,35 @@ function TournamentManagement() {
           border-bottom: 1px solid #edf5f3;
         }
 
+        .setup-wizard-period {
+          margin: 0 0 18px;
+          padding: 12px 14px;
+          border: 1px solid #ccefe7;
+          border-radius: 8px;
+          background: #f7fffd;
+        }
+
+        .setup-wizard-period-label {
+          display: block;
+          color: #007a68;
+          font-size: 12px;
+          font-weight: 950;
+          text-transform: uppercase;
+        }
+
+        .setup-wizard-period-range {
+          display: block;
+          margin-top: 3px;
+          color: #06332e;
+          font-size: 16px;
+          font-weight: 950;
+        }
+
+        .setup-wizard-period-note {
+          display: block;
+          margin-top: 5px;
+        }
+
         @media (max-width: 920px) {
           .tournament-management-header {
             align-items: flex-start;
@@ -731,7 +840,7 @@ function TournamentManagement() {
             value={filterStatus}
             style={{ width: 170 }}
             options={[
-              { label: "All", value: "" },
+              { label: "Filter by Status", value: "" },
               ...TOURNAMENT_STATUSES.map((status) => ({
                 label: status,
                 value: status,
@@ -851,7 +960,10 @@ function TournamentManagement() {
                   name="imageUrl"
                   noStyle
                   rules={[
-                    { required: true, message: "Tournament banner is required" },
+                    {
+                      required: true,
+                      message: "Tournament banner is required",
+                    },
                   ]}
                 >
                   <Input type="hidden" />
@@ -862,12 +974,7 @@ function TournamentManagement() {
                   maxCount={1}
                   showUploadList={false}
                 >
-                  <Button
-                    icon={<UploadOutlined />}
-                    loading={isUploadingBanner}
-                  >
-                    Upload Banner
-                  </Button>
+                  <Button loading={isUploadingBanner}>Upload Banner</Button>
                 </Upload>
                 {bannerUrl ? (
                   <img
@@ -889,7 +996,9 @@ function TournamentManagement() {
                 <Form.Item
                   label="Start Date"
                   name="startDate"
-                  rules={[{ required: true, message: "Start date is required" }]}
+                  rules={[
+                    { required: true, message: "Start date is required" },
+                  ]}
                 >
                   <DatePicker
                     format="DD/MM/YYYY"
@@ -933,6 +1042,22 @@ function TournamentManagement() {
                 >
                   <InputNumber min={8} max={10} style={{ width: "100%" }} />
                 </Form.Item>
+
+                <Form.Item
+                  label="Total Races for round 1"
+                  name="totalRaces"
+                  rules={[
+                    { required: true, message: "Total races is required" },
+                    {
+                      type: "number",
+                      min: 2,
+                      max: 10,
+                      message: "Races must be at least 2, maximum 10",
+                    },
+                  ]}
+                >
+                  <InputNumber min={2} max={10} style={{ width: "100%" }} />
+                </Form.Item>
               </div>
 
               <Form.Item label="Entry Fee" name="entryFee">
@@ -955,6 +1080,20 @@ function TournamentManagement() {
               </Text>
             </div>
 
+            <div className="setup-wizard-period">
+              <span className="setup-wizard-period-label">Tournament time</span>
+              <span className="setup-wizard-period-range">
+                {formatTournamentPeriod(
+                  createdTournament?.startDate,
+                  createdTournament?.endDate,
+                )}
+              </span>
+              <Text type="secondary" className="setup-wizard-period-note">
+                Race date should stay inside this tournament period to avoid
+                backend validation errors.
+              </Text>
+            </div>
+
             <Form form={round1Form} layout="vertical">
               <Form.List name="races">
                 {(fields, { add, remove }) => (
@@ -965,7 +1104,9 @@ function TournamentManagement() {
                           {...restField}
                           label="Race Name"
                           name={[name, "name"]}
-                          rules={[{ required: true, message: "Name is required" }]}
+                          rules={[
+                            { required: true, message: "Name is required" },
+                          ]}
                         >
                           <Input placeholder={`Vong 1 - Race ${index + 1}`} />
                         </Form.Item>
@@ -974,16 +1115,31 @@ function TournamentManagement() {
                           {...restField}
                           label="Date"
                           name={[name, "date"]}
-                          rules={[{ required: true, message: "Date is required" }]}
+                          rules={[
+                            { required: true, message: "Date is required" },
+                          ]}
                         >
-                          <Input type="date" />
+                          <DatePicker
+                            format="DD/MM/YYYY"
+                            placeholder="DD/MM/YYYY"
+                            style={{ width: "100%" }}
+                            disabledDate={(date) =>
+                              isOutsidePeriod(
+                                date,
+                                createdTournament?.startDate,
+                                createdTournament?.endDate,
+                              )
+                            }
+                          />
                         </Form.Item>
 
                         <Form.Item
                           {...restField}
                           label="Start Time"
                           name={[name, "startTime"]}
-                          rules={[{ required: true, message: "Time is required" }]}
+                          rules={[
+                            { required: true, message: "Time is required" },
+                          ]}
                         >
                           <Input type="time" />
                         </Form.Item>
@@ -1004,8 +1160,8 @@ function TournamentManagement() {
                       onClick={() =>
                         add({
                           name: `Vong 1 - Race ${fields.length + 1}`,
-                          date: "",
-                          startTime: "",
+                          date: toRaceDateValue(createdTournament?.startDate),
+                          startTime: "08:00",
                         })
                       }
                     >
@@ -1028,6 +1184,20 @@ function TournamentManagement() {
               </Text>
             </div>
 
+            <div className="setup-wizard-period">
+              <span className="setup-wizard-period-label">Tournament time</span>
+              <span className="setup-wizard-period-range">
+                {formatTournamentPeriod(
+                  createdTournament?.startDate,
+                  createdTournament?.endDate,
+                )}
+              </span>
+              <Text type="secondary" className="setup-wizard-period-note">
+                The final race date should also stay inside this tournament
+                period.
+              </Text>
+            </div>
+
             <Form form={round2Form} layout="vertical">
               <div className="setup-wizard-grid">
                 <Form.Item
@@ -1035,7 +1205,18 @@ function TournamentManagement() {
                   name="date"
                   rules={[{ required: true, message: "Date is required" }]}
                 >
-                  <Input type="date" />
+                  <DatePicker
+                    format="DD/MM/YYYY"
+                    placeholder="DD/MM/YYYY"
+                    style={{ width: "100%" }}
+                    disabledDate={(date) =>
+                      isOutsidePeriod(
+                        date,
+                        createdTournament?.startDate,
+                        createdTournament?.endDate,
+                      )
+                    }
+                  />
                 </Form.Item>
 
                 <Form.Item
@@ -1079,14 +1260,13 @@ function TournamentManagement() {
             <Input.TextArea rows={3} />
           </Form.Item>
 
-          <Form.Item
-            label="Tournament Banner"
-            required
-          >
+          <Form.Item label="Tournament Banner" required>
             <Form.Item
               name="imageUrl"
               noStyle
-              rules={[{ required: true, message: "Tournament banner is required" }]}
+              rules={[
+                { required: true, message: "Tournament banner is required" },
+              ]}
             >
               <Input type="hidden" />
             </Form.Item>
@@ -1096,12 +1276,7 @@ function TournamentManagement() {
               maxCount={1}
               showUploadList={false}
             >
-              <Button
-                icon={<UploadOutlined />}
-                loading={isUploadingBanner}
-              >
-                Upload Banner
-              </Button>
+              <Button loading={isUploadingBanner}>Upload Banner</Button>
             </Upload>
             {bannerUrl ? (
               <img
@@ -1167,6 +1342,22 @@ function TournamentManagement() {
             <InputNumber min={8} max={10} style={{ width: "100%" }} />
           </Form.Item>
 
+          <Form.Item
+            label="Total Races for round 1"
+            name="totalRaces"
+            rules={[
+              { required: true, message: "Total races is required" },
+              {
+                type: "number",
+                min: 2,
+                max: 10,
+                message: "Races must be at least 2, maximum 10",
+              },
+            ]}
+          >
+            <InputNumber min={2} max={10} style={{ width: "100%" }} />
+          </Form.Item>
+
           <Form.Item label="Entry Fee" name="entryFee">
             <InputNumber min={0} style={{ width: "100%" }} />
           </Form.Item>
@@ -1200,27 +1391,57 @@ function TournamentManagement() {
       </Modal>
 
       <Modal
-        title={`Advancements - ${advancementTournament?.title || ""}`}
+        title={`Qualified Horses for Final - ${advancementTournament?.title || ""}`}
         open={Boolean(advancementTournament)}
         footer={null}
-        width={850}
+        width={920}
         onCancel={() => {
           setAdvancementTournament(null);
           setAdvancements([]);
         }}
         destroyOnClose
       >
+        <div
+          style={{
+            marginBottom: 16,
+            padding: "12px 14px",
+            border: "1px solid #d9f7ef",
+            borderRadius: 8,
+            background: "#f6fffc",
+          }}
+        >
+          <Text strong>Final qualification list</Text>
+          <br />
+          <Text type="secondary">
+            Horses shown here have advanced from Round 1 races into the final
+            race of this tournament.
+          </Text>
+        </div>
+
         <Table
           rowKey="key"
           loading={isAdvancementsLoading}
           dataSource={advancements}
           pagination={false}
-          locale={{ emptyText: "No horses have advanced yet" }}
+          scroll={{ x: 1180 }}
+          locale={{ emptyText: "No qualified horses for the final yet" }}
           columns={[
+            {
+              title: "Qualified Record ID",
+              dataIndex: "id",
+              width: 190,
+              render: (value) => <Text code>{value}</Text>,
+            },
             {
               title: "Horse",
               dataIndex: "horseName",
               render: (value) => <Text strong>{value}</Text>,
+            },
+            {
+              title: "Horse ID",
+              dataIndex: "horseId",
+              width: 190,
+              render: (value) => <Text code>{value}</Text>,
             },
             {
               title: "Color",
@@ -1228,11 +1449,23 @@ function TournamentManagement() {
               width: 140,
             },
             {
-              title: "From Race",
+              title: "Qualified From",
               dataIndex: "fromRaceName",
             },
             {
-              title: "Advanced At",
+              title: "Source Race ID",
+              dataIndex: "fromRaceId",
+              width: 190,
+              render: (value) => <Text code>{value}</Text>,
+            },
+            {
+              title: "Final Race ID",
+              dataIndex: "toRaceId",
+              width: 190,
+              render: (value) => <Text code>{value}</Text>,
+            },
+            {
+              title: "Qualified At",
               dataIndex: "advancedAt",
               width: 180,
               render: formatDateTime,
@@ -1253,6 +1486,10 @@ function TournamentManagement() {
       >
         {detailTournament && (
           <Space direction="vertical" style={{ width: "100%" }} size="middle">
+            <p>
+              <strong>ID:</strong> <Text code>{detailTournament.id}</Text>
+            </p>
+
             <p>
               <strong>Title:</strong> {detailTournament.title}
             </p>
@@ -1289,7 +1526,8 @@ function TournamentManagement() {
             </p>
 
             <p>
-              <strong>Total Races:</strong> {detailTournament.totalRaces}
+              <strong>Total Races for round 1:</strong>{" "}
+              {detailTournament.totalRaces}
             </p>
 
             <p>

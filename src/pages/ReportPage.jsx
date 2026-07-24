@@ -24,6 +24,7 @@ import {
 } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
 import {
   createReport,
   deleteReport,
@@ -31,21 +32,15 @@ import {
   getReportById,
 } from "../api/services/report.service";
 
+dayjs.extend(utc);
+
 const { Text, Title, Paragraph } = Typography;
 const { TextArea } = Input;
 
 function formatDate(value) {
   if (!value) return "N/A";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return new Intl.DateTimeFormat("en-GB", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-  }).format(date);
+  const date = dayjs.utc(value);
+  return date.isValid() ? date.format("DD/MM/YYYY HH:mm:ss") : value;
 }
 
 export default function ReportPage() {
@@ -56,7 +51,7 @@ export default function ReportPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDetailLoading, setIsDetailLoading] = useState(false);
   const [activeId, setActiveId] = useState(null);
-  const [detailData, setDetailData] = useState(null);  
+  const [detailData, setDetailData] = useState(null);
   const [isActionLoading, setIsActionLoading] = useState(false);
 
   async function loadReports() {
@@ -147,7 +142,7 @@ export default function ReportPage() {
       text: "Frozen Points Not Refunded",
       color: "volcano",
     },
-    OTHER: { text: "Other", color: "default" },
+    OTHER: { text: "Other", color: "orange" },
   };
 
   const statusConfigs = {
@@ -277,7 +272,7 @@ export default function ReportPage() {
       width: 180,
       render: (date) => (
         <Text style={{ color: "rgba(244, 255, 251, 0.5)" }}>
-          {date ? dayjs(date).format("YYYY-MM-DD HH:mm:ss") : "N/A"}
+          {date ? dayjs.utc(date).format("YYYY-MM-DD HH:mm:ss") : "N/A"}
         </Text>
       ),
     },
@@ -301,7 +296,7 @@ export default function ReportPage() {
               Details
             </Button>
 
-            <Popconfirm
+            {/* <Popconfirm
               title="Delete Report"
               description="Are you sure you want to delete this report?"
               onConfirm={() => handleDelete(targetId)}
@@ -312,7 +307,7 @@ export default function ReportPage() {
               <Button size="small" type="primary" danger ghost>
                 Delete
               </Button>
-            </Popconfirm>
+            </Popconfirm> */}
           </div>
         );
       },
@@ -553,35 +548,35 @@ export default function ReportPage() {
                 gap: "16px",
               }}
             >
-              <Form.Item
-                name="category"
-                label="Issue Category"
-                rules={[
-                  { required: true, message: "Please select a category" },
-                ]}
+              <ConfigProvider
+                theme={{
+                  token: {
+                    colorPrimary: "#69f8dd",
+                    colorBgContainer: "#001c19",
+                    colorBgElevated: "#002722",
+                    colorBorder: "rgba(105, 248, 221, 0.42)",
+                    colorText: "#f4fffb",
+                    colorTextPlaceholder: "rgba(205, 245, 238, 0.5)",
+                  },
+                  components: {
+                    Select: {
+                      selectorBg: "#001c19",
+                      hoverBorderColor: "#69f8dd",
+                      activeBorderColor: "#69f8dd",
+                      activeOutlineColor: "rgba(105, 248, 221, 0.18)",
+                      optionActiveBg: "rgba(105, 248, 221, 0.12)",
+                      optionSelectedBg: "#69f8dd",
+                      optionSelectedColor: "#052a26",
+                    },
+                  },
+                }}
               >
-                <ConfigProvider
-                  theme={{
-                    token: {
-                      colorPrimary: "#69f8dd",
-                      colorBgContainer: "#001c19",
-                      colorBgElevated: "#002722",
-                      colorBorder: "rgba(105, 248, 221, 0.42)",
-                      colorText: "#f4fffb",
-                      colorTextPlaceholder: "rgba(205, 245, 238, 0.5)",
-                    },
-                    components: {
-                      Select: {
-                        selectorBg: "#001c19",
-                        hoverBorderColor: "#69f8dd",
-                        activeBorderColor: "#69f8dd",
-                        activeOutlineColor: "rgba(105, 248, 221, 0.18)",
-                        optionActiveBg: "rgba(105, 248, 221, 0.12)",
-                        optionSelectedBg: "#69f8dd",
-                        optionSelectedColor: "#052a26",
-                      },
-                    },
-                  }}
+                <Form.Item
+                  name="category"
+                  label="Issue Category"
+                  rules={[
+                    { required: true, message: "Please select a category" },
+                  ]}
                 >
                   <Select
                     className="report-category-select"
@@ -602,9 +597,8 @@ export default function ReportPage() {
                     </Select.Option>
                     <Select.Option value="OTHER">Other</Select.Option>
                   </Select>
-                </ConfigProvider>
-              </Form.Item>
-
+                </Form.Item>
+              </ConfigProvider>
               <Form.Item
                 name="relatedRaceId"
                 label="Related Race ID (Optional)"

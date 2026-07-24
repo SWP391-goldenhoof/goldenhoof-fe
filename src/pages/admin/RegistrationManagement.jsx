@@ -13,12 +13,6 @@ import {
   Typography,
   message,
 } from "antd";
-import {
-  CheckOutlined,
-  CloseOutlined,
-  EyeOutlined,
-  FieldTimeOutlined,
-} from "@ant-design/icons";
 import "antd/dist/reset.css";
 import {
   acceptRegistrationToWaitlist,
@@ -28,6 +22,11 @@ import {
   rejectRegistration,
 } from "../../api/services/registration.service";
 import { getRacesByTournament } from "../../api/services/race.service";
+import { getTournaments } from "../../api/services/tournament.service";
+import { useAdminTableFixedColumns } from "../../hooks/useAdminTableFixedColumns";
+import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
+dayjs.extend(utc);
 
 const { Title, Text } = Typography;
 
@@ -51,16 +50,27 @@ function formatMoney(value) {
   return Number(value).toLocaleString("vi-VN") + " VND";
 }
 
-function formatDate(value) {
+// function formatDate(value) {
+//   if (!value) return "N/A";
+
+//   const date = new Date(value);
+//   if (Number.isNaN(date.getTime())) return value;
+
+//   return new Intl.DateTimeFormat("vi-VN", {
+//     dateStyle: "short",
+//     timeStyle: "short",
+//   }).format(date);
+// }
+
+function formatDateTime(value) {
   if (!value) return "N/A";
 
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
+  const d = dayjs(value);
+  if (!d.isValid()) return value;
 
-  return new Intl.DateTimeFormat("vi-VN", {
-    dateStyle: "short",
-    timeStyle: "short",
-  }).format(date);
+  // Sử dụng định dạng giữ nguyên hiển thị theo chuỗi ISO gốc hoặc format thủ công
+  // Để hiển thị dạng DD/MM/YYYY HH:mm đúng chuẩn vi-VN mà không bị lệch múi giờ:
+  return dayjs.utc(value).format("DD/MM/YYYY HH:mm");
 }
 
 function getTimeValue(value) {
@@ -134,7 +144,7 @@ function normalizeRaceOption(item, index) {
   const name = item?.name || `Race ${index + 1}`;
   const round = item?.roundNumber ? `Round ${item.roundNumber}` : "";
   const order = item?.raceOrder ? `Race ${item.raceOrder}` : "";
-  const startTime = formatDate(item?.startTime || item?.date);
+  const startTime = formatDateTime(item?.startTime || item?.date);
   const details = [round, order, startTime !== "N/A" ? startTime : ""]
     .filter(Boolean)
     .join(" - ");
@@ -151,6 +161,9 @@ function RegistrationManagement() {
 
   const [registrations, setRegistrations] = useState([]);
   const [raceOptions, setRaceOptions] = useState([]);
+  const [filterTournamentId, setFilterTournamentId] = useState("");
+  const [tournamentOptions, setTournamentOptions] = useState([]);
+
   const [filterStatus, setFilterStatus] = useState("");
   const [searchText, setSearchText] = useState("");
 
@@ -161,13 +174,18 @@ function RegistrationManagement() {
   const [detailRegistration, setDetailRegistration] = useState(null);
   const [confirmingRegistration, setConfirmingRegistration] = useState(null);
   const [rejectingRegistration, setRejectingRegistration] = useState(null);
+  const shouldFixColumns = useAdminTableFixedColumns();
 
-  async function loadRegistrations(status = filterStatus) {
+  async function loadRegistrations(
+    status = filterStatus,
+    tournamentId = filterTournamentId,
+  ) {
     setIsLoading(true);
 
     try {
       const response = await getRegistrations({
         status,
+        tournamentId,
       });
 
       setRegistrations(
@@ -182,8 +200,24 @@ function RegistrationManagement() {
     }
   }
 
+  async function loadTournamentOptions() {
+    try {
+      const tournaments = await getTournaments();
+
+      setTournamentOptions(
+        tournaments.map((item) => ({
+          value: item._id || item.id,
+          label: item.title,
+        })),
+      );
+    } catch (error) {
+      message.error(error?.message || "Unable to load tournaments");
+    }
+  }
+
   useEffect(() => {
     loadRegistrations();
+    loadTournamentOptions();
   }, []);
 
   async function openDetailModal(record) {
@@ -302,34 +336,36 @@ function RegistrationManagement() {
     }
   }
 
-  const filteredRegistrations = useMemo(() => {
-    const normalizedSearchText = searchText.trim().toLowerCase();
+  // const filteredRegistrations = useMemo(() => {
+  //   const normalizedSearchText = searchText.trim().toLowerCase();
 
-    if (!normalizedSearchText) {
-      return registrations;
-    }
+  //   if (!normalizedSearchText) {
+  //     return registrations;
+  //   }
 
-    return registrations.filter((registration) =>
-      [
-        registration.tournamentTitle,
-        registration.horseName,
-        registration.jockeyName,
-        registration.ownerName,
-        registration.status,
-      ]
-        .filter(Boolean)
-        .some((value) =>
-          String(value).toLowerCase().includes(normalizedSearchText),
-        ),
-    );
-  }, [registrations, searchText]);
+  //   return registrations.filter((registration) =>
+  //     [
+  //       registration.tournamentTitle,
+  //       registration.horseName,
+  //       registration.jockeyName,
+  //       registration.ownerName,
+  //       registration.status,
+  //     ]
+  //       .filter(Boolean)
+  //       .some((value) =>
+  //         String(value).toLowerCase().includes(normalizedSearchText),
+  //       ),
+  //   );
+  // }, [registrations, searchText]);
+
+  const filteredRegistrations = useMemo(() => registrations, [registrations]);
 
   const columns = useMemo(
     () => [
       {
         title: "Tournament",
         dataIndex: "tournamentTitle",
-        fixed: "left",
+        fixed: shouldFixColumns ? "left" : undefined,
         width: 260,
         render: (value) => <Text strong>{value}</Text>,
       },
@@ -365,48 +401,55 @@ function RegistrationManagement() {
         width: 130,
         render: (status) => <Tag color={statusColor(status)}>{status}</Tag>,
       },
-      {
-        title: "Registered At",
-        dataIndex: "registeredAt",
-        width: 180,
-        render: formatDate,
-      },
+      // {
+      //   title: "Registered At",
+      //   dataIndex: "registeredAt",
+      //   width: 180,
+      //   render: formatDateTime,
+      // },
       {
         title: "Actions",
         key: "actions",
-        fixed: "right",
-        width: 210,
+        fixed: shouldFixColumns ? "right" : undefined,
+        width: 390,
         render: (_, record) => (
           <Space>
             <Button
-              type="text"
-              icon={<EyeOutlined />}
+              className="registration-management-link-btn"
+              size="small"
               onClick={() => openDetailModal(record)}
-            />
+            >
+              Detail
+            </Button>
+            <Button
+              className="registration-management-link-btn"
+              size="small"
+              onClick={() => handleAcceptToWaitlist(record)}
+            >
+              Waitlist
+            </Button>
 
             <Button
-              type="text"
-              icon={<CheckOutlined />}
+              className="registration-management-link-btn"
+              size="small"
               onClick={() => openConfirmModal(record)}
-            />
+            >
+              Confirm
+            </Button>
 
             <Button
-              type="text"
-              icon={<CloseOutlined />}
+              danger
+              size="small"
               danger
               onClick={() => openRejectModal(record)}
-            />
-
-            <Button
-              type="text"
-              icon={<FieldTimeOutlined />}
-              onClick={() => handleAcceptToWaitlist(record)}
-            />
+            >
+              Reject
+            </Button>
           </Space>
         ),
       },
     ],
-    [],
+    [shouldFixColumns],
   );
 
   return (
@@ -457,6 +500,12 @@ function RegistrationManagement() {
           border-color: #bdeee5;
           color: #006755;
           font-weight: 850;
+          background: #fff;
+        }
+
+        .registration-management-link-btn.ant-btn:hover {
+          border-color: #69f8dd !important;
+          color: #006755 !important;
         }
 
         .registration-management-primary.ant-btn {
@@ -493,29 +542,50 @@ function RegistrationManagement() {
             ]}
             onChange={(value) => {
               setFilterStatus(value);
-              loadRegistrations(value);
+              loadRegistrations(value, filterTournamentId);
             }}
           />
 
-          <Input
+          <Select
+            value={filterTournamentId}
+            placeholder="Tournament"
             allowClear
-            placeholder="Search by name"
+            style={{ width: 260 }}
+            options={[
+              {
+                label: "All Tournaments",
+                value: "",
+              },
+              ...tournamentOptions,
+            ]}
+            onChange={(value) => {
+              const tournamentId = value || "";
+
+              setFilterTournamentId(tournamentId);
+              loadRegistrations(filterStatus, tournamentId);
+            }}
+          />
+
+          {/* <Input
+            allowClear
+            placeholder="Search by tournament title"
             value={searchText}
             style={{ width: 260 }}
             onChange={(event) => setSearchText(event.target.value)}
-          />
+          /> */}
 
-          <Button
+          {/* <Button
             className="registration-management-link-btn"
             onClick={() => loadRegistrations()}
           >
             Search
-          </Button>
+          </Button> */}
 
           <Button
             className="registration-management-primary"
             onClick={() => {
               setFilterStatus("");
+              setFilterTournamentId("");
               setSearchText("");
               loadRegistrations("");
             }}
@@ -549,17 +619,77 @@ function RegistrationManagement() {
       >
         {detailRegistration && (
           <Descriptions bordered column={1} size="middle">
+            <Descriptions.Item label="Registration ID">
+              <Text code>
+                {detailRegistration._id || detailRegistration.id || "N/A"}
+              </Text>
+            </Descriptions.Item>
+
+            {/* <Descriptions.Item label="Tournament ID">
+              <Text code>
+                {detailRegistration.tournamentId?._id ||
+                  detailRegistration.tournamentId?.id ||
+                  detailRegistration.tournamentId ||
+                  "N/A"}
+              </Text>
+            </Descriptions.Item> */}
+
             <Descriptions.Item label="Tournament">
               {detailRegistration.tournamentTitle}
             </Descriptions.Item>
+
+            {/* <Descriptions.Item label="Race ID">
+              <Text code>
+                {detailRegistration.raceId?._id ||
+                  detailRegistration.raceId?.id ||
+                  detailRegistration.raceId ||
+                  "N/A"}
+              </Text>
+            </Descriptions.Item> */}
+
+            <Descriptions.Item label="Race Title">
+              {detailRegistration.raceId?.raceName ||
+                detailRegistration.raceName ||
+                "N/A"}
+            </Descriptions.Item>
+
+            {/* <Descriptions.Item label="Horse ID">
+              <Text code>
+                {detailRegistration.horseId?._id ||
+                  detailRegistration.horseId?.id ||
+                  detailRegistration.horseId ||
+                  "N/A"}
+              </Text>
+            </Descriptions.Item> */}
 
             <Descriptions.Item label="Horse">
               {detailRegistration.horseName}
             </Descriptions.Item>
 
+            {/* <Descriptions.Item label="Jockey ID">
+              <Text code>
+                {detailRegistration.jockeyId?._id ||
+                  detailRegistration.jockeyId?.id ||
+                  detailRegistration.jockeyId ||
+                  "N/A"}
+              </Text>
+            </Descriptions.Item> */}
+
             <Descriptions.Item label="Jockey">
               {detailRegistration.jockeyName}
             </Descriptions.Item>
+
+            {/* <Descriptions.Item label="Owner ID">
+              <Text code>
+                {detailRegistration.ownerId?._id ||
+                  detailRegistration.ownerId?.id ||
+                  detailRegistration.horseOwnerId?._id ||
+                  detailRegistration.horseOwnerId?.id ||
+                  detailRegistration.ownerId ||
+                  detailRegistration.horseOwnerId ||
+                  "N/A"}
+              </Text>
+            </Descriptions.Item> */}
 
             <Descriptions.Item label="Owner">
               {detailRegistration.ownerName}
@@ -580,11 +710,11 @@ function RegistrationManagement() {
             </Descriptions.Item>
 
             <Descriptions.Item label="Registered At">
-              {formatDate(detailRegistration.registeredAt)}
+              {formatDateTime(detailRegistration.registeredAt)}
             </Descriptions.Item>
 
             <Descriptions.Item label="Confirmed At">
-              {formatDate(detailRegistration.confirmedAt)}
+              {formatDateTime(detailRegistration.confirmedAt)}
             </Descriptions.Item>
 
             <Descriptions.Item label="Rejected Reason">
@@ -592,11 +722,11 @@ function RegistrationManagement() {
             </Descriptions.Item>
 
             <Descriptions.Item label="Rejected At">
-              {formatDate(detailRegistration.rejectedAt)}
+              {formatDateTime(detailRegistration.rejectedAt)}
             </Descriptions.Item>
 
             <Descriptions.Item label="Created At">
-              {formatDate(detailRegistration.createdAt)}
+              {formatDateTime(detailRegistration.createdAt)}
             </Descriptions.Item>
           </Descriptions>
         )}

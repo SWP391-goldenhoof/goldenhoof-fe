@@ -33,13 +33,12 @@ export async function getMyReports() {
 }
 
 export async function getAllReportsAdmin(filters = {}) {
-  const params = {};
-  if (filters.status) params.status = filters.status;
-  if (filters.category) params.category = filters.category;
-
   const response = await apiClient.get(REPORT_ENDPOINTS.ADMIN_ALL, {
     includeAuth: true,
-    params,
+    params: {
+      ...(filters.status ? { status: filters.status } : {}),
+      ...(filters.category ? { category: filters.category } : {}),
+    },
   });
   return unwrapCollection(response);
 }

@@ -17,10 +17,15 @@ import {
   getJockeyInvitationContract,
   respondToJockeyInvitation,
 } from "../../api/services/jockey.service";
+import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
 import { getTournamentById } from "../../api/services/tournament.service";
 import { getUserById } from "../../api/services/user.service";
 import { cancelContract } from "../../api/services/contract.service";
 import JockeyContractModal from "../../components/contracts/JockeyContractModal";
+import WorkspaceHeader from "../../components/ui/WorkspaceHeader";
+
+dayjs.extend(utc);
 
 const statusColor = {
   Pending: "gold",
@@ -30,6 +35,12 @@ const statusColor = {
 
 function formatMoney(value) {
   return `${Number(value || 0).toLocaleString("vi-VN")} VND`;
+}
+
+function formatDateTime(value) {
+  if (!value) return "N/A";
+  const parsed = dayjs.utc(value);
+  return parsed.isValid() ? parsed.format("DD/MM/YYYY HH:mm:ss") : value;
 }
 
 function pickFirstValue(source, keys, fallback = "") {
@@ -362,8 +373,7 @@ export default function JockeyInvitations() {
           </Button>
           <Button
             size="small"
-            disabled={!isAccepted(record.status)}
-            loading={contractLoading}
+            disabled={!isAccepted(record.status) || contractLoading}
             onClick={() => openInvitationContract(record)}
           >
             Contract
@@ -378,12 +388,17 @@ export default function JockeyInvitations() {
   return (
     <Space direction="vertical" size={16} style={{ width: "100%" }}>
       {contextHolder}
+      <WorkspaceHeader
+        kicker="INVITATIONS"
+        title="Horse Owner Invitations"
+        subtitle="Review race invitations, contracts, and owner proposals"
+        onRefresh={loadInvitations}
+        refreshLoading={loading}
+      />
+
       {errorMessage && <Alert type="warning" showIcon message={errorMessage} />}
 
-      <Card
-        title="Horse owner invitations"
-        extra={<Button onClick={loadInvitations}>Refresh</Button>}
-      >
+      <Card title="Horse owner invitations">
         <Table
           rowKey="id"
           loading={loading}
@@ -454,7 +469,9 @@ export default function JockeyInvitations() {
               {selectedDetail.jockeyCompensationRate}%
             </Descriptions.Item>
             <Descriptions.Item label="Message">{selectedDetail.message || "N/A"}</Descriptions.Item>
-            <Descriptions.Item label="Sent at">{selectedDetail.sentAt || "N/A"}</Descriptions.Item>
+            <Descriptions.Item label="Sent at">
+              {formatDateTime(selectedDetail.sentAt)}
+            </Descriptions.Item>
           </Descriptions>
         )}
       </Modal>

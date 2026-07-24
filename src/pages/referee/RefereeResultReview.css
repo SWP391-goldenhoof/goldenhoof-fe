@@ -1,0 +1,12 @@
+.referee-result-review-page .ant-table-tbody>tr,
+.referee-result-review-page .ant-table-tbody>tr>td,
+.referee-result-review-page .ant-table-tbody>tr.ant-table-row>td,
+.referee-result-review-page .ant-table-tbody>tr>td.ant-table-cell-row-hover,
+.referee-result-review-page .ant-btn,
+.referee-result-review-page .ant-card {
+    transition: none !important;
+}
+
+.referee-result-review-page .ant-table-tbody>tr>td.ant-table-cell-row-hover {
+    background: inherit !important;
+}

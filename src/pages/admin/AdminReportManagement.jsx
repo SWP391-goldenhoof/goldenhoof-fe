@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   Button,
-  Input,
   Modal,
   Select,
   Table,
@@ -21,11 +20,11 @@ import {
   resolveReport,
   deleteReport,
 } from "../../api/services/report.service";
+import { useAdminTableFixedColumns } from "../../hooks/useAdminTableFixedColumns";
 
 dayjs.extend(customParseFormat);
 
 const { Text, Title } = Typography;
-const { Search } = Input;
 
 const ReportCategory = {
   MISSING_WINNING_POINTS: "MISSING_WINNING_POINTS",
@@ -49,22 +48,35 @@ function resolveList(response) {
   return [];
 }
 
+// function formatDate(value) {
+//   if (!value) return "N/A";
+//   if (typeof value === "string" && value.includes("/")) {
+//     return value;
+//   }
+//   const date = new Date(value);
+//   if (Number.isNaN(date.getTime())) return value;
+
+//   return new Intl.DateTimeFormat("en-GB", {
+//     day: "2-digit",
+//     month: "2-digit",
+//     year: "numeric",
+//     hour: "2-digit",
+//     minute: "2-digit",
+//     second: "2-digit",
+//   }).format(date);
+// }
+
 function formatDate(value) {
   if (!value) return "N/A";
   if (typeof value === "string" && value.includes("/")) {
     return value;
   }
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
 
-  return new Intl.DateTimeFormat("en-GB", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-  }).format(date);
+  // Sử dụng dayjs với plugin utc để tránh tự động convert sang múi giờ địa phương
+  const d = dayjs.utc(value);
+  if (!d.isValid()) return value;
+
+  return d.format("DD/MM/YYYY HH:mm:ss");
 }
 
 function getTimeValue(value) {
@@ -150,18 +162,20 @@ export default function AdminReportManagement() {
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [activeId, setActiveId] = useState(null);
   const [detailData, setDetailData] = useState(null);
-  const [searchKey, setSearchKey] = useState("");
   const [selectedStatus, setSelectedStatus] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState(null);
+  const shouldFixColumns = useAdminTableFixedColumns();
 
-  async function loadReports() {
+  async function loadReports({
+    status = selectedStatus,
+    category = selectedCategory,
+  } = {}) {
     setIsLoading(true);
     try {
-      const response = await getAllReportsAdmin();
+      const response = await getAllReportsAdmin({ status, category });
       setReports(
         resolveList(response).map(normalizeReport).sort(sortNewestRequestFirst),
       );
-      setSearchKey("");
     } catch (error) {
       message.error(
         error?.message || "Failed to load system report requests list",
@@ -175,26 +189,7 @@ export default function AdminReportManagement() {
     loadReports();
   }, []);
 
-  const filteredReports = useMemo(() => {
-    return reports.filter((report) => {
-      const matchStatus = selectedStatus
-        ? report.status === selectedStatus
-        : true;
-      const matchCategory = selectedCategory
-        ? report.category === selectedCategory
-        : true;
-
-      const rName = String(report.reporterName || "").toLowerCase();
-      const rDesc = String(report.description || "").toLowerCase();
-      const query = searchKey.toLowerCase();
-
-      const matchSearch = searchKey
-        ? rName.includes(query) || rDesc.includes(query)
-        : true;
-
-      return matchStatus && matchCategory && matchSearch;
-    });
-  }, [reports, selectedStatus, selectedCategory, searchKey]);
+  const filteredReports = useMemo(() => reports, [reports]);
 
   async function openDetailModal(id) {
     setActiveId(id);
@@ -257,7 +252,7 @@ export default function AdminReportManagement() {
       {
         title: "Reporter Name",
         dataIndex: "reporterName",
-        fixed: "left",
+        fixed: shouldFixColumns ? "left" : undefined,
         width: 180,
         ellipsis: true,
         render: (text) => <Text strong>{text}</Text>,
@@ -299,7 +294,7 @@ export default function AdminReportManagement() {
       {
         title: "Actions",
         key: "actions",
-        fixed: "right",
+        fixed: shouldFixColumns ? "right" : undefined,
         width: 240,
         render: (_, record) => {
           const resolveMenuItems = [
@@ -321,13 +316,15 @@ export default function AdminReportManagement() {
             },
           ];
 
-          const isNotPending = record.status !== ReportStatus.PENDING;
+          const isPendingAndInvestigate =
+            record.status === ReportStatus.PENDING ||
+            record.status === ReportStatus.INVESTIGATING;
 
           return (
             <div style={{ display: "flex", gap: "8px" }}>
               <Button
+                className="report-management-link-btn"
                 size="small"
-                type="primary"
                 ghost
                 onClick={() => openDetailModal(record.id)}
                 loading={isDetailLoading && activeId === record.id}
@@ -335,7 +332,7 @@ export default function AdminReportManagement() {
                 Details
               </Button>
 
-              {!isNotPending ? (
+              {isPendingAndInvestigate ? (
                 <Dropdown
                   menu={{ items: resolveMenuItems }}
                   trigger={["click"]}
@@ -345,10 +342,10 @@ export default function AdminReportManagement() {
                     size="small"
                     type="default"
                     style={{
-                      backgroundColor: "#e6fffb",
+                      backgroundColor: "#69f8dd",
                       color: "#006d75",
                       borderColor: "#87e8de",
-                      fontWeight: 600,
+                      fontWeight: 900,
                     }}
                   >
                     Resolve
@@ -370,7 +367,7 @@ export default function AdminReportManagement() {
                 </Button>
               )}
 
-              <Popconfirm
+              {/* <Popconfirm
                 title="Delete Report"
                 description="Are you sure you want to delete this report?"
                 onConfirm={() => handleDelete(record.id)}
@@ -381,13 +378,13 @@ export default function AdminReportManagement() {
                 <Button size="small" type="primary" danger ghost>
                   Delete
                 </Button>
-              </Popconfirm>
+              </Popconfirm> */}
             </div>
           );
         },
       },
     ],
-    [isDetailLoading, isActionLoading, activeId, reports],
+    [isDetailLoading, isActionLoading, activeId, reports, shouldFixColumns],
   );
 
   return (
@@ -448,6 +445,18 @@ export default function AdminReportManagement() {
           background: #fff;
         }
 
+        .report-management-link-btn.ant-btn {
+          border-color: #bdeee5;
+          color: #006755;
+          font-weight: 850;
+          background: #fff;
+        }
+
+        .report-management-link-btn.ant-btn:hover {
+          border-color: #69f8dd !important;
+          color: #006755 !important;
+        }
+
         .bet-management-refresh.ant-btn {
           border-color: transparent;
           color: #06332e;
@@ -485,10 +494,22 @@ export default function AdminReportManagement() {
         </div>
         <div className="bet-management-actions">
           <Select
-            placeholder="Filter by category"
+            placeholder="Category"
             allowClear
+            value={selectedCategory}
             style={{ width: 200 }}
-            onChange={(val) => setSelectedCategory(val)}
+            onChange={(val) => {
+              const nextCategory = val || null;
+              setSelectedCategory(nextCategory);
+              loadReports({
+                status: selectedStatus,
+                category: nextCategory,
+              });
+            }}
+            onClear={() => {
+              setSelectedCategory(null);
+              loadReports({ status: selectedStatus, category: "" });
+            }}
           >
             {Object.values(ReportCategory).map((cat) => (
               <Select.Option key={cat} value={cat}>
@@ -498,10 +519,22 @@ export default function AdminReportManagement() {
           </Select>
 
           <Select
-            placeholder="Filter by status"
+            placeholder="Status"
             allowClear
+            value={selectedStatus}
             style={{ width: 160 }}
-            onChange={(val) => setSelectedStatus(val)}
+            onChange={(val) => {
+              const nextStatus = val || null;
+              setSelectedStatus(nextStatus);
+              loadReports({
+                status: nextStatus,
+                category: selectedCategory,
+              });
+            }}
+            onClear={() => {
+              setSelectedStatus(null);
+              loadReports({ status: "", category: selectedCategory });
+            }}
           >
             {Object.values(ReportStatus).map((status) => (
               <Select.Option key={status} value={status}>
@@ -510,17 +543,9 @@ export default function AdminReportManagement() {
             ))}
           </Select>
 
-          <Search
-            placeholder="Search by Reporter or Description..."
-            allowClear
-            enterButton="Search"
-            size="middle"
-            value={searchKey}
-            onChange={(e) => setSearchKey(e.target.value)}
-          />
           <Button
             className="bet-management-refresh"
-            onClick={loadReports}
+            onClick={() => loadReports()}
             loading={isLoading}
           >
             Refresh

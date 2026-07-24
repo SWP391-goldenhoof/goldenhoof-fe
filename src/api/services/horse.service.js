@@ -29,10 +29,25 @@ export async function createHorse(payload) {
   return unwrapData(response);
 }
 
-export async function getHorses() {
-  const response = await apiClient.get(HORSE_ENDPOINTS.ROOT, authConfig());
+export async function getHorses(params = {}) {
+  const response = await apiClient.get(
+    HORSE_ENDPOINTS.ROOT,
+    {
+      ...authConfig(),
+      params,
+    },
+  );
 
   return unwrapCollection(response);
+}
+
+export async function getAdminHorseStats() {
+  const response = await apiClient.get(
+    HORSE_ENDPOINTS.ADMIN_DASHBOARD_STATS,
+    authConfig(),
+  );
+
+  return unwrapData(response);
 }
 
 export async function getMyHorses() {

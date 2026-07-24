@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { API_BASE_URL } from "../api/client";
-import { getUsersByRole } from "../api/services/user.service";
+import { searchJockeys } from "../api/services/user.service";
 import Pagination from "../components/ui/Pagination";
 import "./ExploreLists.css";
 
@@ -24,7 +24,11 @@ function normalizeJockey(jockey, index) {
       profile?.name ||
       "Unnamed jockey",
     email: jockey?.email || profile?.email || "—",
-    status: jockey?.jockeyStatus || profile?.jockeyStatus || jockey?.status || "Unknown",
+    status:
+      jockey?.jockeyStatus ||
+      profile?.jockeyStatus ||
+      jockey?.status ||
+      "Unknown",
     wins: Number(jockey?.totalWin ?? jockey?.wins ?? profile?.totalWin ?? 0),
     winRate: Number(jockey?.winRate ?? profile?.winRate ?? 0),
     image: imageUrl(
@@ -42,41 +46,54 @@ export default function AllJockeys() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
-  const [sort, setSort] = useState("name-asc");
   const [page, setPage] = useState(1);
+  const [sortWinRate, setSortWinRate] = useState("");
+  const [sortTotalWin, setSortTotalWin] = useState("");
 
   useEffect(() => {
     let mounted = true;
-    getUsersByRole("Jockey")
-      .then((data) => mounted && setJockeys((data || []).map(normalizeJockey)))
-      .catch(() => mounted && setJockeys([]))
-      .finally(() => mounted && setLoading(false));
+
+    setLoading(true);
+
+    const timer = setTimeout(async () => {
+      try {
+        const params = {
+          fullName: search || undefined,
+          sortWinRate: sortWinRate || undefined,
+          sortTotalWin: sortTotalWin || undefined,
+        };
+
+        const data = await searchJockeys(params);
+
+        if (mounted) {
+          setJockeys((data || []).map(normalizeJockey));
+        }
+      } catch {
+        if (mounted) {
+          setJockeys([]);
+        }
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
+      }
+    }, 400);
+
     return () => {
       mounted = false;
+      clearTimeout(timer);
     };
-  }, []);
+  }, [search, sortWinRate, sortTotalWin]);
 
   const statuses = useMemo(
     () => [...new Set(jockeys.map((jockey) => jockey.status).filter(Boolean))],
     [jockeys],
   );
   const visibleJockeys = useMemo(() => {
-    const query = search.trim().toLowerCase();
-    return jockeys
-      .filter(
-        (jockey) =>
-          (!query ||
-            jockey.name.toLowerCase().includes(query) ||
-            jockey.email.toLowerCase().includes(query)) &&
-          (status === "all" || jockey.status === status),
-      )
-      .sort((first, second) => {
-        if (sort === "wins-desc") return second.wins - first.wins;
-        if (sort === "rate-desc") return second.winRate - first.winRate;
-        if (sort === "name-desc") return second.name.localeCompare(first.name);
-        return first.name.localeCompare(second.name);
-      });
-  }, [jockeys, search, sort, status]);
+    if (status === "all") return jockeys;
+
+    return jockeys.filter((jockey) => jockey.status === status);
+  }, [jockeys, status]);
   const paginatedJockeys = visibleJockeys.slice(
     (page - 1) * PAGE_SIZE,
     page * PAGE_SIZE,
@@ -84,17 +101,19 @@ export default function AllJockeys() {
 
   useEffect(() => {
     setPage(1);
-  }, [search, sort, status]);
+  }, [search, sortWinRate, sortTotalWin, status]);
 
   return (
     <main className="explore-page">
       <div className="explore-shell">
-        <Link className="explore-back" to="/home">← Về Home</Link>
+        <Link className="explore-back" to="/home">
+          ← Back Home
+        </Link>
         <header className="explore-header">
           <div>
             <span className="explore-eyebrow">GOLDEN HOOF</span>
             <h1>All Jockeys</h1>
-            <p>Danh sách jockey và thành tích thi đấu.</p>
+            <p>View all Jockeys</p>
           </div>
           <span className="explore-count">{visibleJockeys.length} jockey</span>
         </header>
@@ -102,21 +121,39 @@ export default function AllJockeys() {
           <input
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            placeholder="Tìm theo tên hoặc email jockey…"
+            placeholder="Search by jockey name"
           />
-          <select value={status} onChange={(event) => setStatus(event.target.value)}>
-            <option value="all">Tất cả trạng thái</option>
-            {statuses.map((item) => <option value={item} key={item}>{item}</option>)}
+          <select
+            value={status}
+            onChange={(event) => setStatus(event.target.value)}
+          >
+            <option value="all">All status</option>
+            {statuses.map((item) => (
+              <option value={item} key={item}>
+                {item}
+              </option>
+            ))}
           </select>
-          <select value={sort} onChange={(event) => setSort(event.target.value)}>
-            <option value="name-asc">Tên A → Z</option>
-            <option value="name-desc">Tên Z → A</option>
-            <option value="wins-desc">Nhiều chiến thắng nhất</option>
-            <option value="rate-desc">Win rate cao nhất</option>
+          <select
+            value={sortWinRate}
+            onChange={(e) => setSortWinRate(e.target.value)}
+          >
+            <option value="">Win Rate</option>
+            <option value="desc">Descending</option>
+            <option value="asc">Ascending</option>
+          </select>
+
+          <select
+            value={sortTotalWin}
+            onChange={(e) => setSortTotalWin(e.target.value)}
+          >
+            <option value="">Total Wins</option>
+            <option value="desc">Descending</option>
+            <option value="asc">Ascending</option>
           </select>
         </div>
         {loading ? (
-          <div className="explore-state">Đang tải danh sách jockey…</div>
+          <div className="explore-state">Loading jockeys list…</div>
         ) : visibleJockeys.length ? (
           <section className="explore-grid">
             {paginatedJockeys.map((jockey, index) => (
@@ -134,16 +171,26 @@ export default function AllJockeys() {
                     JOCKEY #{(page - 1) * PAGE_SIZE + index + 1}
                   </span>
                   <h2>{jockey.name}</h2>
-                  <span className="explore-card-subtitle">{jockey.email} · {jockey.status}</span>
+                  <span className="explore-card-subtitle">
+                    {jockey.email} · {jockey.status}
+                  </span>
                   <div className="explore-card-stats">
-                    <div><span>Wins</span><strong>{jockey.wins}</strong></div>
-                    <div><span>Win rate</span><strong>{jockey.winRate}%</strong></div>
+                    <div>
+                      <span>Wins</span>
+                      <strong>{jockey.wins}</strong>
+                    </div>
+                    <div>
+                      <span>Win rate</span>
+                      <strong>{jockey.winRate}%</strong>
+                    </div>
                   </div>
                 </div>
               </article>
             ))}
           </section>
-        ) : <div className="explore-state">Không tìm thấy jockey phù hợp.</div>}
+        ) : (
+          <div className="explore-state">No jockey found.</div>
+        )}
         <Pagination
           page={page}
           totalItems={visibleJockeys.length}

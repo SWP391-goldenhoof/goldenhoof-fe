@@ -27,6 +27,8 @@ import {
     useEffect,
     useState,
 } from "react";
+import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
 
 import {
     getRaceById,
@@ -40,6 +42,9 @@ import {
 import {
     createEndReport,
 } from "../../api/services/refereeReport.service";
+import "./RefereeResultReview.css";
+
+dayjs.extend(utc);
 
 export default function RefereeResultReview() {
     const { id } = useParams();
@@ -127,9 +132,7 @@ export default function RefereeResultReview() {
             title: "Finish Time",
             dataIndex: "finishedTime",
             render: (value) =>
-                new Date(
-                    value
-                ).toLocaleString(),
+                value ? dayjs.utc(value).format("HH:mm DD/MM/YYYY") : "-",
         },
         {
             title: "Status",
@@ -230,6 +233,7 @@ export default function RefereeResultReview() {
     return (
         <>
             <Space
+                className="referee-result-review-page"
                 direction="vertical"
                 style={{
                     width: "100%",
@@ -269,6 +273,8 @@ export default function RefereeResultReview() {
                         <Empty />
                     ) : (
                         <Table
+                            className="referee-result-review-table"
+                            rowHoverable={false}
                             rowKey="_id"
                             columns={
                                 rawColumns

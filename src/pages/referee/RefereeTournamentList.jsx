@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
+import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
 import {
     Card,
     Input,
@@ -13,6 +15,9 @@ import {
     Button,
     Spin,
     Avatar,
+    Row,
+    Col,
+    Select,
 } from "antd";
 
 import {
@@ -26,6 +31,10 @@ import {
 import { getRaceCourseById } from "../../api/services/race-course.service";
 import { getHorseById } from "../../api/services/horse.service";
 import { getUserById } from "../../api/services/user.service";
+
+import "./RefereeTournamentList.css";
+
+dayjs.extend(utc);
 
 const { Text } = Typography;
 
@@ -44,6 +53,9 @@ export default function RefereeTournamentList() {
 
     const [raceParticipants, setRaceParticipants] =
         useState([]);
+
+    const [statusFilter, setStatusFilter] =
+        useState("");
 
     // Tournament modal
     const [
@@ -67,10 +79,10 @@ export default function RefereeTournamentList() {
         useState(false);
 
     useEffect(() => {
-        loadTournaments();
-    }, []);
+        loadTournaments(statusFilter);
+    }, [statusFilter]);
 
-    async function loadTournaments() {
+    async function loadTournaments(status = "") {
         setLoading(true);
 
         try {
@@ -82,9 +94,17 @@ export default function RefereeTournamentList() {
                     ? response
                     : response?.data || [];
 
+            const filteredTournamentList =
+                status
+                    ? tournamentList.filter(
+                        tournament =>
+                            tournament.status === status
+                    )
+                    : tournamentList;
+
             const enrichedData =
                 await Promise.all(
-                    tournamentList.map(
+                    filteredTournamentList.map(
                         async (tournament) => {
                             try {
                                 const races =
@@ -223,6 +243,15 @@ export default function RefereeTournamentList() {
         }
     }
 
+    const statusColor = {
+        Preparing: "gold",
+        Registration: "cyan",
+        Upcoming: "blue",
+        Ongoing: "green",
+        Completed: "purple",
+        Canceled: "red"
+    }
+
     const filteredData = useMemo(() => {
         return tournaments.filter((item) =>
             (item?.title || "")
@@ -239,7 +268,10 @@ export default function RefereeTournamentList() {
             dataIndex: "title",
             key: "title",
             render: (value) => (
-                <Text strong>
+                <Text
+                    strong
+                    className="dashboard-table-title"
+                >
                     {value || "N/A"}
                 </Text>
             ),
@@ -279,23 +311,11 @@ export default function RefereeTournamentList() {
             render: (_, record) => (
                 <div>
                     <div>
-                        Start:
-                        {" "}
-                        {record.startDate
-                            ? new Date(
-                                record.startDate
-                            ).toLocaleDateString()
-                            : "-"}
+                        Start: {record.startDate || "-"}
                     </div>
 
                     <div>
-                        End:
-                        {" "}
-                        {record.endDate
-                            ? new Date(
-                                record.endDate
-                            ).toLocaleDateString()
-                            : "-"}
+                        End: {record.endDate || "-"}
                     </div>
                 </div>
             ),
@@ -306,7 +326,13 @@ export default function RefereeTournamentList() {
             dataIndex: "status",
             key: "status",
             render: (status) => (
-                <Tag color="blue">
+                <Tag
+                    style={{
+                        background: "#0b6e4f",
+                        color: "#fff",
+                        border: "none"
+                    }}
+                >
                     {status ||
                         "Unknown"}
                 </Tag>
@@ -334,7 +360,7 @@ export default function RefereeTournamentList() {
             key: "action",
             render: (_, record) => (
                 <Button
-                    type="link"
+                    className="dashboard-table-btn"
                     onClick={() => {
                         setSelectedTournament(
                             record
@@ -345,7 +371,7 @@ export default function RefereeTournamentList() {
                         );
                     }}
                 >
-                    View
+                    View Detail
                 </Button>
             ),
         },
@@ -353,50 +379,187 @@ export default function RefereeTournamentList() {
 
     return (
         <>
-            <Space
-                direction="vertical"
-                style={{
-                    width: "100%",
-                }}
-            >
-                <Card title="Tournament List">
-                    <Space
-                        direction="vertical"
-                        style={{
-                            width: "100%",
-                        }}
-                    >
-                        <Input.Search
-                            placeholder="Search tournament"
-                            allowClear
-                            onChange={(e) =>
-                                setSearchText(
-                                    e.target
-                                        .value
-                                )
-                            }
-                        />
+            <div className="referee-dashboard-page">
+                <Space
+                    direction="vertical"
+                    size={28}
+                    style={{
+                        width: "100%",
+                    }}
+                >
 
-                        <Table
-                            rowKey="_id"
-                            loading={loading}
-                            columns={columns}
-                            dataSource={
-                                filteredData
-                            }
-                            pagination={{
-                                pageSize: 10,
-                                showSizeChanger:
-                                    true,
+                    <Card
+                        className="dashboard-hero"
+                    >
+                        <Row
+                            align="middle"
+                            justify="space-between"
+                            gutter={[24, 24]}
+                        >
+                            <Col
+                                xs={24}
+                                sm={24}
+                                md={16}
+                                lg={16}
+                            >
+                                <div className="dashboard-badge">
+                                    GOLDEN HOOF RACING SYSTEM
+                                </div>
+
+                                <Typography.Title
+                                    level={1}
+                                    className="dashboard-title"
+                                >
+                                    Tournament
+                                    <span className="dashboard-title-highlight">
+                                        {" "}
+                                        Explorer
+                                    </span>
+                                </Typography.Title>
+
+                                <Typography.Paragraph
+                                    className="dashboard-subtitle"
+                                >
+                                    Browse tournaments,
+                                    inspect races,
+                                    review participants,
+                                    and monitor every competition.
+                                </Typography.Paragraph>
+                            </Col>
+
+                            <Col
+                                xs={24}
+                                sm={24}
+                                md={8}
+                                lg={8}
+                            >
+                                <img
+                                    src="/goldenhoof-hero.png"
+                                    alt="Tournament Hero"
+                                    className="dashboard-hero-image"
+                                />
+                            </Col>
+                        </Row>
+                    </Card>
+
+                    <Card
+                        className="dashboard-content-card"
+                        title={
+                            <span className="dashboard-card-title">
+                                Tournament List
+                            </span>
+                        }
+
+                        extra={
+                            <Space>
+
+                                <Tag className="dashboard-total-tag">
+                                    {filteredData.length} tournaments
+                                </Tag>
+
+                            </Space>
+                        }
+
+                        extra={
+                            <Typography.Text
+                                className="dashboard-card-extra"
+                            >
+                                Browse all tournaments
+                            </Typography.Text>
+                        }
+                    >
+                        <Space
+                            direction="vertical"
+                            style={{
+                                width: "100%",
                             }}
-                        />
-                    </Space>
-                </Card>
-            </Space>
+                        >
+                            <Space
+                                direction="vertical"
+                                size={16}
+                                style={{
+                                    width: "100%",
+                                    marginBottom: 16
+                                }}
+                            >
+                                <div className="dashboard-filter-bar">
+                                    <Input.Search
+                                        size="large"
+                                        style={{
+                                            width: "100%"
+                                        }}
+                                        placeholder="Search tournament"
+                                        allowClear
+                                        onChange={(e) =>
+                                            setSearchText(e.target.value)
+                                        }
+                                    />
+
+                                    <Select
+                                        size="large"
+                                        style={{
+                                            width: "100%"
+                                        }}
+                                        placeholder="Filter status"
+                                        allowClear
+                                        value={statusFilter || undefined}
+                                        onChange={(value) =>
+                                            setStatusFilter(value || "")
+                                        }
+                                        options={[
+                                            {
+                                                value: "Preparing",
+                                                label: "Preparing",
+                                            },
+                                            {
+                                                value: "Registration",
+                                                label: "Registration",
+                                            },
+                                            {
+                                                value: "Upcoming",
+                                                label: "Upcoming",
+                                            },
+                                            {
+                                                value: "Ongoing",
+                                                label: "Ongoing",
+                                            },
+                                            {
+                                                value: "Completed",
+                                                label: "Completed",
+                                            },
+                                            {
+                                                value: "Canceled",
+                                                label: "Canceled",
+                                            },
+                                        ]}
+                                    />
+                                </div>
+                            </Space>
+
+                            <div className="table-responsive">
+                                <Table
+                                    scroll={{ x: 1000 }}
+                                    className="dashboard-table"
+                                    size="large"
+                                    rowKey="_id"
+                                    loading={loading}
+                                    columns={columns}
+                                    dataSource={filteredData}
+                                    pagination={{
+                                        pageSize: 10,
+                                        showSizeChanger: true,
+                                    }}
+                                />
+                            </div>
+                        </Space>
+                    </Card>
+                </Space>
+            </div>
 
             {/* Tournament Modal */}
 
             <Modal
+                className="dashboard-modal"
                 open={
                     tournamentModalOpen
                 }
@@ -406,16 +569,31 @@ export default function RefereeTournamentList() {
                     )
                 }
                 footer={null}
-                width={1000}
+                width={900}
+                style={{
+                    maxWidth: "95vw"
+                }}
                 title={
-                    selectedTournament?.title
+                    <div>
+                        <div className="dashboard-modal-title">
+                            {selectedTournament?.title}
+                        </div>
+
+                        <div className="dashboard-modal-subtitle">
+                            Tournament information and race overview
+                        </div>
+                    </div>
                 }
+
             >
                 {selectedTournament && (
                     <>
                         <Descriptions
                             bordered
-                            column={2}
+                            style={{
+                                marginBottom: 32
+                            }}
+                            column={1}
                         >
                             <Descriptions.Item label="Status">
                                 {
@@ -430,29 +608,23 @@ export default function RefereeTournamentList() {
                             </Descriptions.Item>
 
                             <Descriptions.Item label="Start Date">
-                                {selectedTournament.startDate
-                                    ? new Date(
-                                        selectedTournament.startDate
-                                    ).toLocaleString()
-                                    : "-"}
+                                {selectedTournament.startDate || "-"}
                             </Descriptions.Item>
 
                             <Descriptions.Item label="End Date">
-                                {selectedTournament.endDate
-                                    ? new Date(
-                                        selectedTournament.endDate
-                                    ).toLocaleString()
-                                    : "-"}
+                                {selectedTournament.endDate || "-"}
                             </Descriptions.Item>
                         </Descriptions>
 
-                        <br />
+                        <div className="dashboard-divider" />
 
                         <List
                             header={
-                                <b>
+                                <Typography.Title
+                                    level={5}
+                                >
                                     Race List
-                                </b>
+                                </Typography.Title>
                             }
                             bordered
                             dataSource={
@@ -466,7 +638,7 @@ export default function RefereeTournamentList() {
                                     actions={[
                                         <Button
                                             key="view"
-                                            type="link"
+                                            className="dashboard-table-btn"
                                             onClick={() =>
                                                 handleViewRace(
                                                     race._id
@@ -481,26 +653,25 @@ export default function RefereeTournamentList() {
                                 >
                                     <List.Item.Meta
                                         title={
-                                            race.name
+                                            <Typography.Text
+                                                className="race-title"
+                                            >
+                                                {race.name}
+                                            </Typography.Text>
                                         }
                                         description={
-                                            <>
-                                                <div>
-                                                    Status:
-                                                    {" "}
-                                                    {
-                                                        race.status
-                                                    }
-                                                </div>
+                                            <Space
+                                                direction="vertical"
+                                                size={4}
+                                            >
+                                                <Tag color={statusColor[status]}>
+                                                    {race.status}
+                                                </Tag>
 
-                                                <div>
-                                                    Round:
-                                                    {" "}
-                                                    {
-                                                        race.round
-                                                    }
-                                                </div>
-                                            </>
+                                                <Text className="race-round">
+                                                    Round {race.round}
+                                                </Text>
+                                            </Space>
                                         }
                                     />
                                 </List.Item>
@@ -513,6 +684,7 @@ export default function RefereeTournamentList() {
             {/* Race Detail Modal */}
 
             <Modal
+                className="dashboard-modal"
                 open={raceModalOpen}
                 onCancel={() =>
                     setRaceModalOpen(
@@ -521,9 +693,19 @@ export default function RefereeTournamentList() {
                 }
                 footer={null}
                 width={1100}
+                style={{
+                    maxWidth: "95vw"
+                }}
                 title={
-                    selectedRace?.name ||
-                    "Race Detail"
+                    <div>
+                        <div className="dashboard-modal-title">
+                            {selectedRace?.name || "Race Detail"}
+                        </div>
+
+                        <div className="dashboard-modal-subtitle">
+                            Inspect race information and participants
+                        </div>
+                    </div>
                 }
             >
                 {raceLoading ? (
@@ -533,6 +715,9 @@ export default function RefereeTournamentList() {
                         <>
                             <Descriptions
                                 bordered
+                                style={{
+                                    marginBottom: 32
+                                }}
                                 column={2}
                             >
                                 <Descriptions.Item label="Race Name">
@@ -555,17 +740,13 @@ export default function RefereeTournamentList() {
 
                                 <Descriptions.Item label="Start Time">
                                     {selectedRace.startTime
-                                        ? new Date(
-                                            selectedRace.startTime
-                                        ).toLocaleString()
+                                        ? dayjs.utc(selectedRace.startTime).format("HH:mm DD/MM/YYYY")
                                         : "-"}
                                 </Descriptions.Item>
 
                                 <Descriptions.Item label="Date">
                                     {selectedRace.date
-                                        ? new Date(
-                                            selectedRace.date
-                                        ).toLocaleDateString()
+                                        ? dayjs.utc(selectedRace.date).format("DD/MM/YYYY")
                                         : "-"}
                                 </Descriptions.Item>
 
@@ -590,59 +771,87 @@ export default function RefereeTournamentList() {
                                 </Descriptions.Item>
                             </Descriptions>
 
-                            <br />
+                            <div className="dashboard-divider" />
 
-                            <Typography.Title
-                                level={5}
-                            >
-                                Participants
-                            </Typography.Title>
+                            <div className="dashboard-section-header">
 
-                            <Table
-                                rowKey={(record) =>
-                                    record.gateNumber
-                                }
-                                pagination={false}
-                                dataSource={
-                                    raceParticipants
-                                }
-                                columns={[
-                                    {
-                                        title: "Gate",
-                                        dataIndex:
-                                            "gateNumber",
-                                    },
+                                <Typography.Title
+                                    level={4}
+                                    className="dashboard-section-title"
+                                >
+                                    Participants
+                                </Typography.Title>
 
-                                    {
-                                        title: "Horse",
-                                        render: (
-                                            _,
-                                            record
-                                        ) => (
-                                            <Space>
-                                                <Avatar
-                                                    src={
-                                                        record.horseImage
-                                                    }
-                                                    size={50}
-                                                />
+                                <Tag color="cyan">
+                                    {raceParticipants.length} Horses
+                                </Tag>
 
-                                                <span>
-                                                    {
-                                                        record.horseName
-                                                    }
-                                                </span>
-                                            </Space>
-                                        ),
-                                    },
+                            </div>
+                            <div className="table-responsive">
+                                <Table
+                                    scroll={{ x: 600 }}
+                                    className="dashboard-table participant-table"
+                                    size="large"
+                                    rowKey={(record) =>
+                                        record.gateNumber
+                                    }
+                                    pagination={false}
+                                    dataSource={
+                                        raceParticipants
+                                    }
+                                    columns={[
+                                        {
+                                            title: "Gate",
+                                            dataIndex: "gateNumber",
+                                            render: (gate) =>
 
-                                    {
-                                        title: "Jockey",
-                                        dataIndex:
-                                            "jockeyName",
-                                    },
-                                ]}
-                            />
+                                                <Tag color="cyan">
+                                                    Gate {gate}
+                                                </Tag>
+                                        },
+
+                                        {
+                                            title: "Horse",
+                                            render: (
+                                                _,
+                                                record
+                                            ) => (
+                                                <Space
+                                                    style={{
+                                                        marginBottom: 16,
+                                                    }}
+                                                >
+                                                    <Avatar
+                                                        className="horse-avatar"
+                                                        src={
+                                                            record.horseImage
+                                                        }
+                                                        size={52}
+                                                    />
+
+                                                    <div>
+
+                                                        <div className="dashboard-horse-name">
+                                                            {record.horseName}
+                                                        </div>
+
+                                                        <div className="dashboard-horse-subtitle">
+                                                            Race Horse
+                                                        </div>
+
+                                                    </div>
+                                                </Space>
+                                            ),
+                                        },
+
+                                        {
+                                            title: "Jockey",
+                                            dataIndex:
+                                                "jockeyName",
+                                        },
+                                    ]}
+                                />
+                            </div>
                         </>
                     )
                 )}

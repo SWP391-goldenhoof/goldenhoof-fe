@@ -1,19 +1,24 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
 import { getFinishedRaceResults } from "../api/services/home.service";
 import Pagination from "../components/ui/Pagination";
 import "./ExploreLists.css";
 
+dayjs.extend(utc);
+
 const PAGE_SIZE = 6;
 
-function formatDate(value) {
-  const date = new Date(value);
-  return Number.isNaN(date.getTime())
-    ? "—"
-    : new Intl.DateTimeFormat("vi-VN", {
-        dateStyle: "medium",
-        timeStyle: "short",
-      }).format(date);
+function formatRaceDateTime(value, fallback = "-") {
+  if (!value) return fallback;
+  const date = dayjs.utc(value);
+  return date.isValid() ? date.format("HH:mm DD/MM/YYYY") : fallback;
+}
+
+function getDateSortValue(value) {
+  const date = dayjs(value);
+  return date.isValid() ? date.valueOf() : 0;
 }
 
 export default function AllRaceResults() {
@@ -23,6 +28,7 @@ export default function AllRaceResults() {
   const [surface, setSurface] = useState("all");
   const [sort, setSort] = useState("date-desc");
   const [page, setPage] = useState(1);
+  const [selectedResult, setSelectedResult] = useState(null);
 
   useEffect(() => {
     let mounted = true;
@@ -53,11 +59,11 @@ export default function AllRaceResults() {
       )
       .sort((first, second) => {
         if (sort === "date-asc") {
-          return (new Date(first.date).getTime() || 0) - (new Date(second.date).getTime() || 0);
+          return getDateSortValue(first.date) - getDateSortValue(second.date);
         }
         if (sort === "name-asc") return first.race.localeCompare(second.race);
         if (sort === "name-desc") return second.race.localeCompare(first.race);
-        return (new Date(second.date).getTime() || 0) - (new Date(first.date).getTime() || 0);
+        return getDateSortValue(second.date) - getDateSortValue(first.date);
       });
   }, [results, search, sort, surface]);
   const paginatedResults = visibleResults.slice(
@@ -69,15 +75,32 @@ export default function AllRaceResults() {
     setPage(1);
   }, [search, sort, surface]);
 
+  useEffect(() => {
+    if (!selectedResult) return undefined;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [selectedResult]);
+
+  const selectedRankings = selectedResult?.results?.length
+    ? [...selectedResult.results].sort(
+        (first, second) =>
+          Number(first.finalRank ?? first.rawRank ?? first.rank ?? 999) -
+          Number(second.finalRank ?? second.rawRank ?? second.rank ?? 999),
+      )
+    : [];
+
   return (
     <main className="explore-page">
       <div className="explore-shell">
-        <Link className="explore-back" to="/home">← Về Home</Link>
         <header className="explore-header">
           <div>
             <span className="explore-eyebrow">GOLDEN HOOF</span>
             <h1>All Race Results</h1>
-            <p>Kết quả các race đã hoàn thành.</p>
           </div>
           <span className="explore-count">{visibleResults.length} kết quả</span>
         </header>
@@ -97,6 +120,7 @@ export default function AllRaceResults() {
             <option value="name-asc">Tên race A → Z</option>
             <option value="name-desc">Tên race Z → A</option>
           </select>
+          <Link className="explore-back explore-toolbar-home" to="/home">← Về Home</Link>
         </div>
         {loading ? (
           <div className="explore-state">Đang tải kết quả race…</div>
@@ -105,12 +129,18 @@ export default function AllRaceResults() {
             {paginatedResults.map((result) => (
               <article className="result-record" key={result.id}>
                 <img src={result.image} alt="" />
-                <div className="result-record-main"><span>Race</span><strong>{result.race}</strong></div>
-                <div><span>Ngày đua</span><strong>{formatDate(result.date)}</strong></div>
+                <div className="result-record-main">
+                  <strong>{result.tournament}</strong>
+                  <small>{result.race}</small>
+                </div>
+                <div><span>Date</span><strong>{formatRaceDateTime(result.date)}</strong></div>
                 <div><span>Winner</span><strong>{result.winner}</strong></div>
                 <div><span>Jockey</span><strong>{result.jockey}</strong></div>
-                <div><span>Địa điểm</span><strong>{result.venue}</strong></div>
-                <div><span>Cự ly</span><strong>{result.distance} · {result.surface}</strong></div>
+                <div className="result-record-actions">
+                  <button type="button" onClick={() => setSelectedResult(result)}>
+                    Detail
+                  </button>
+                </div>
               </article>
             ))}
           </section>
@@ -122,6 +152,64 @@ export default function AllRaceResults() {
           onChange={setPage}
         />
       </div>
+      {selectedResult && (
+        <div
+          className="race-result-modal-backdrop"
+          role="presentation"
+          onClick={() => setSelectedResult(null)}
+        >
+          <section
+            className="race-result-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="race-result-detail-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="race-result-modal-header">
+              <div>
+                <span className="explore-eyebrow">Race detail</span>
+                <h2 id="race-result-detail-title">{selectedResult.race}</h2>
+                <p>{selectedResult.tournament}</p>
+              </div>
+              <button type="button" onClick={() => setSelectedResult(null)}>
+                Close
+              </button>
+            </div>
+
+            <div className="race-result-detail-grid">
+              <div><span>Status</span><strong>{selectedResult.status}</strong></div>
+              <div><span>Date</span><strong>{formatRaceDateTime(selectedResult.date)}</strong></div>
+              <div><span>Race Course</span><strong>{selectedResult.venue}</strong></div>
+              <div><span>Distance</span><strong>{selectedResult.distance} · {selectedResult.trackType}</strong></div>
+            </div>
+
+            {selectedRankings.length ? (
+              <div className="race-result-ranking">
+                <div className="race-result-ranking-head">
+                  <span>Rank</span>
+                  <span>Horse</span>
+                  <span>Jockey</span>
+                  <span>Finished time</span>
+                  <span>Status</span>
+                </div>
+                {selectedRankings.map((item) => (
+                  <div className="race-result-ranking-row" key={item.resultId || `${item.horseId}-${item.finalRank}`}>
+                    <strong>#{item.finalRank ?? item.rawRank ?? "-"}</strong>
+                    <span>{item.horseName || item.horseId || "-"}</span>
+                    <span>{item.jockeyName || item.jockeyId || "-"}</span>
+                    <span>{formatRaceDateTime(item.finishedTime)}</span>
+                    <span>{item.status || "-"}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="explore-state race-result-empty">
+                Chưa có kết quả chi tiết cho race này.
+              </div>
+            )}
+          </section>
+        </div>
+      )}
     </main>
   );
 }

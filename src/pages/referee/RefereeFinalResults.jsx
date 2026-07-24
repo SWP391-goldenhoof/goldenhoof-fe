@@ -19,6 +19,8 @@ import {
     useEffect,
     useState,
 } from "react";
+import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
 
 import {
     useNavigate,
@@ -32,6 +34,8 @@ import {
 import {
     getFinalResults,
 } from "../../api/services/rawResult.service";
+
+dayjs.extend(utc);
 
 const { Title, Text } = Typography;
 
@@ -134,9 +138,7 @@ export default function RefereeFinalResults() {
             key: "finishedTime",
             render: (value) =>
                 value
-                    ? new Date(
-                        value
-                    ).toLocaleString()
+                    ? dayjs.utc(value).format("HH:mm DD/MM/YYYY")
                     : "-",
         },
     ];

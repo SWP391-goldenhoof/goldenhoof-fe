@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   Button,
-  Input,
   Modal,
   Select,
   Table,
@@ -13,12 +12,14 @@ import {
 import "antd/dist/reset.css";
 import dayjs from "dayjs";
 import customParseFormat from "dayjs/plugin/customParseFormat";
+import utc from "dayjs/plugin/utc";
 import { getAllBets, getBetDetail } from "../../api/services/bet.service";
+import { useAdminTableFixedColumns } from "../../hooks/useAdminTableFixedColumns";
 
 dayjs.extend(customParseFormat);
+dayjs.extend(utc);
 
 const { Text, Title } = Typography;
-const { Search } = Input;
 
 function pick(source, keys, fallback = "") {
   for (const key of keys) {
@@ -36,22 +37,35 @@ function resolveList(response) {
   return [];
 }
 
+// function formatDate(value) {
+//   if (!value) return "N/A";
+//   if (typeof value === "string" && value.includes("/")) {
+//     return value;
+//   }
+//   const date = new Date(value);
+//   if (Number.isNaN(date.getTime())) return value;
+
+//   return new Intl.DateTimeFormat("en-GB", {
+//     day: "2-digit",
+//     month: "2-digit",
+//     year: "numeric",
+//     hour: "2-digit",
+//     minute: "2-digit",
+//     second: "2-digit",
+//   }).format(date);
+// }
+
 function formatDate(value) {
   if (!value) return "N/A";
   if (typeof value === "string" && value.includes("/")) {
     return value;
   }
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
 
-  return new Intl.DateTimeFormat("en-GB", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-  }).format(date);
+  // Sử dụng dayjs với plugin utc để tránh tự động convert sang múi giờ địa phương
+  const d = dayjs.utc(value);
+  if (!d.isValid()) return value;
+
+  return d.format("DD/MM/YYYY HH:mm:ss");
 }
 
 function getTimeValue(value) {
@@ -101,6 +115,7 @@ function normalizeBet(item, index) {
     pointsWon: item.pointsWon ?? 0,
     result: item.result ?? "PENDING",
     placedAt: item.placedAt ?? "",
+    isInsuranceCardUsed: Boolean(item.isInsuranceCardUsed),
   };
 }
 
@@ -117,17 +132,16 @@ export default function AdminBetManagement() {
   const [isDetailLoading, setIsDetailLoading] = useState(false);
   const [activeId, setActiveId] = useState(null);
   const [detailData, setDetailData] = useState(null);
-  const [searchKey, setSearchKey] = useState("");
   const [selectedStatus, setSelectedStatus] = useState(null);
+  const shouldFixColumns = useAdminTableFixedColumns();
 
-  async function loadBets() {
+  async function loadBets({ result = selectedStatus } = {}) {
     setIsLoading(true);
     try {
-      const response = await getAllBets();
+      const response = await getAllBets({ result });
       setBets(
         resolveList(response).map(normalizeBet).sort(sortNewestRequestFirst),
       );
-      setSearchKey("");
     } catch (error) {
       message.error(
         error?.message || "Failed to load system bet requests list",
@@ -141,23 +155,7 @@ export default function AdminBetManagement() {
     loadBets();
   }, []);
 
-  const filteredBets = useMemo(() => {
-    return bets.filter((bet) => {
-      const matchStatus = selectedStatus ? bet.result === selectedStatus : true;
-
-      const sName = String(bet.spectatorName || "").toLowerCase();
-      const rName = String(bet.raceName || "").toLowerCase();
-      const hName = String(bet.horseName || "").toLowerCase();
-      const query = searchKey.toLowerCase();
-
-      const matchSearch = searchKey
-        ? sName.includes(query) ||
-          rName.includes(query) ||
-          hName.includes(query)
-        : true;
-      return matchStatus && matchSearch;
-    });
-  }, [bets, selectedStatus, searchKey]);
+  const filteredBets = useMemo(() => bets, [bets]);
 
   async function openDetailModal(id) {
     setActiveId(id);
@@ -180,7 +178,7 @@ export default function AdminBetManagement() {
       {
         title: "Spectator Name",
         dataIndex: "spectatorName",
-        fixed: "left",
+        fixed: shouldFixColumns ? "left" : undefined,
         width: 180,
         ellipsis: true,
         render: (text) => <Text strong>{text}</Text>,
@@ -229,6 +227,16 @@ export default function AdminBetManagement() {
         render: (result) => <Tag color={statusColor(result)}>{result}</Tag>,
       },
       {
+        title: "Insurance",
+        dataIndex: "isInsuranceCardUsed",
+        width: 120,
+        render: (value) => (
+          <Tag color={value ? "blue" : "default"}>
+            {value ? "Used" : "No"}
+          </Tag>
+        ),
+      },
+      {
         title: "Placed At",
         dataIndex: "placedAt",
         width: 180,
@@ -237,12 +245,12 @@ export default function AdminBetManagement() {
       {
         title: "Actions",
         key: "actions",
-        fixed: "right",
+        fixed: shouldFixColumns ? "right" : undefined,
         width: 120,
         render: (_, record) => (
           <Button
+            className="bet-management-link-btn"
             size="small"
-            type="primary"
             ghost
             onClick={() => openDetailModal(record.id)}
             loading={isDetailLoading && activeId === record.id}
@@ -252,7 +260,7 @@ export default function AdminBetManagement() {
         ),
       },
     ],
-    [isDetailLoading, activeId],
+    [isDetailLoading, activeId, shouldFixColumns],
   );
 
   return (
@@ -313,6 +321,18 @@ export default function AdminBetManagement() {
           background: #fff;
         }
 
+        .bet-management-link-btn.ant-btn {
+          border-color: #bdeee5;
+          color: #006755;
+          font-weight: 850;
+          background: #fff;
+        }
+
+        .bet-management-link-btn.ant-btn:hover {
+          border-color: #69f8dd !important;
+          color: #006755 !important;
+        }
+
         .bet-management-refresh.ant-btn {
           border-color: transparent;
           color: #06332e;
@@ -350,27 +370,29 @@ export default function AdminBetManagement() {
         </div>
         <div className="bet-management-actions">
           <Select
-            placeholder="Filter by result"
+            placeholder="Result"
             allowClear
+            value={selectedStatus}
             style={{ width: 180 }}
-            onChange={(val) => setSelectedStatus(val)}
+            onChange={(val) => {
+              const nextResult = val || null;
+              setSelectedStatus(nextResult);
+              loadBets({ result: nextResult });
+            }}
+            onClear={() => {
+              setSelectedStatus(null);
+              loadBets({ result: "" });
+            }}
           >
             <Select.Option value="PENDING">PENDING</Select.Option>
             <Select.Option value="WIN">WIN</Select.Option>
-            <Select.Option value="LOST">LOST</Select.Option>
+            <Select.Option value="LOSE">LOSE</Select.Option>
+            <Select.Option value="REFUNDED">REFUNDED</Select.Option>
           </Select>
 
-          <Search
-            placeholder="Search by Spectator, Race, Horse Name..."
-            allowClear
-            enterButton="Search"
-            size="middle"
-            value={searchKey}
-            onChange={(e) => setSearchKey(e.target.value)}
-          />
           <Button
             className="bet-management-refresh"
-            onClick={loadBets}
+            onClick={() => loadBets()}
             loading={isLoading}
           >
             Refresh
@@ -416,11 +438,23 @@ export default function AdminBetManagement() {
             size="small"
             style={{ marginTop: 15 }}
           >
+            <Descriptions.Item label="Bet ID">
+              {detailData.id}
+            </Descriptions.Item>
+            <Descriptions.Item label="Spectator ID">
+              {detailData.spectatorId}
+            </Descriptions.Item>
             <Descriptions.Item label="Spectator Name">
               <Text strong>{detailData.spectatorName}</Text>
             </Descriptions.Item>
+            <Descriptions.Item label="Race ID">
+              {detailData.raceId}
+            </Descriptions.Item>
             <Descriptions.Item label="Race Name">
               {detailData.raceName}
+            </Descriptions.Item>
+            <Descriptions.Item label="Horse ID">
+              {detailData.horseId}
             </Descriptions.Item>
             <Descriptions.Item label="Horse Name">
               {detailData.horseName}
@@ -447,6 +481,9 @@ export default function AdminBetManagement() {
               <Tag color={statusColor(detailData.result)}>
                 {detailData.result}
               </Tag>
+            </Descriptions.Item>
+            <Descriptions.Item label="Insurance Card">
+              {detailData.isInsuranceCardUsed ? "Used" : "No"}
             </Descriptions.Item>
             <Descriptions.Item label="Placed At">
               {formatDate(detailData.placedAt)}

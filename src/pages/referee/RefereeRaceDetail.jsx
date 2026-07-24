@@ -3,11 +3,14 @@ import {
     Button,
     Card,
     Col,
+    ConfigProvider,
     Descriptions,
     Empty,
     Form,
     InputNumber,
     Row,
+    Modal,
+    Input,
     Space,
     Spin,
     Statistic,
@@ -26,6 +29,8 @@ import {
 } from "@ant-design/icons";
 import { useNavigate, useParams } from "react-router-dom";
 import { useEffect, useState, useMemo } from "react";
+import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
 
 import RefereeHorseDetailModal from "./RefereeHorseDetailModal";
 import RefereeJockeyDetailModal from "./RefereeJockeyDetailModal";
@@ -40,6 +45,10 @@ import {
     startRaceBroadcast,
     getBroadcastStatus,
 } from "../../api/services/race.service";
+
+import {
+    rejectRegistration,
+} from "../../api/services/registration.service";
 
 import {
     createRaceCondition,
@@ -68,6 +77,8 @@ import {
     getTournamentParticipants,
 } from "../../api/services/tournament.service";
 
+dayjs.extend(utc);
+
 function renderResultStatus(status) {
     return (
         <Tag
@@ -82,46 +93,6 @@ function renderResultStatus(status) {
     );
 }
 
-function statusColor(status) {
-    switch (status) {
-        case "Scheduled":
-            return "blue";
-
-        case "Ready":
-            return "gold";
-
-        case "InProgress":
-            return "processing";
-
-        case "Finished":
-            return "green";
-
-        case "Cancelled":
-            return "red";
-
-        default:
-            return "default";
-    }
-}
-
-function trackConditionColor(condition) {
-    switch (condition) {
-        case "Good":
-            return "green";
-
-        case "Firm":
-            return "blue";
-
-        case "Soft":
-            return "orange";
-
-        case "Heavy":
-            return "red";
-
-        default:
-            return "default";
-    }
-}
 
 export default function RefereeRaceDetail() {
     const { id } = useParams();
@@ -145,6 +116,15 @@ export default function RefereeRaceDetail() {
     const [referee, setReferee] = useState(null);
 
     const [raceCourse, setRaceCourse] = useState(null);
+
+    const [removingHorse, setRemovingHorse] =
+        useState(false);
+
+    const [rejectModalOpen, setRejectModalOpen] = useState(false);
+
+    const [rejectReason, setRejectReason] = useState("");
+
+    const [selectedRegistrationId, setSelectedRegistrationId] = useState(null);
 
     const [report, setReport] =
         useState(null);
@@ -321,11 +301,12 @@ export default function RefereeRaceDetail() {
             setBroadcastStatus(broadcastData);
 
             const endReport =
-                reportsData.find(
-                    (item) => item.type === "end"
+                (reportsData || []).find(
+                    item => item.type === "End"
                 );
 
-            setReport(endReport || null);
+            setReport(endReport);
+
 
             if (endReport?.rawResultId) {
 
@@ -371,7 +352,45 @@ export default function RefereeRaceDetail() {
         }
     }
 
+    const handleRemoveHorse = async () => {
 
+        if (!rejectReason.trim()) {
+            message.warning("Please enter reject reason.");
+            return;
+        }
+
+        try {
+
+            setRemovingHorse(true);
+
+            await rejectRegistration(
+                selectedRegistrationId,
+                {
+                    reason: rejectReason.trim()
+                }
+            );
+
+            message.success("Horse removed successfully.");
+
+            setRejectModalOpen(false);
+            setRejectReason("");
+            setSelectedRegistrationId(null);
+
+            await loadData();
+
+        } catch (error) {
+
+            message.error(
+                error.response?.data?.message ||
+                "Cannot remove horse."
+            );
+
+        } finally {
+
+            setRemovingHorse(false);
+
+        }
+    };
 
     const horseMap = useMemo(() => {
         return Object.fromEntries(
@@ -404,10 +423,12 @@ export default function RefereeRaceDetail() {
     const hasFinalResult = finalResults.length > 0;
 
     const renderHorse = (_, record) =>
+        record.horseName ||
         participantMap[record.horseId]?.horse?.name ||
         record.horseId;
 
     const renderJockey = (_, record) =>
+        record.jockeyName ||
         participantMap[record.horseId]?.jockey?.fullName ||
         record.jockeyId;
 
@@ -428,55 +449,88 @@ export default function RefereeRaceDetail() {
             title: "Finish Time",
             dataIndex: "finishedTime",
             render: (value) =>
-                new Date(value).toLocaleString(),
+                value ? dayjs.utc(value).format("HH:mm DD/MM/YYYY") : "-",
         },
         {
             title: "Result",
             render: (_, record) => {
 
                 return (
-                    <Select
-                        value={
-                            selectedRawResultIds.includes(record._id)
-                                ? "Disqualified"
-                                : "Qualified"
-                        }
-                        disabled={hasFinalResult}
-                        style={{
-                            width: 160
-                        }}
-                        onChange={(value) => {
-
-                            if (value === "Disqualified") {
-
-                                setSelectedRawResultIds(prev =>
-                                    prev.includes(record._id)
-                                        ? prev
-                                        : [...prev, record._id]
-                                );
-
-                            } else {
-
-                                setSelectedRawResultIds(prev =>
-                                    prev.filter(id => id !== record._id)
-                                );
-
-                                setDisqualifiedHorseIds(prev =>
-                                    prev.filter(id => id !== record.horseId)
-                                );
-
-                            }
-
-                        }}
-                        options={[
-                            {
-                                value: "Qualified"
+                    <ConfigProvider
+                        theme={{
+                            token: {
+                                colorPrimary: "#14b8a6",
+                                colorText: "#0f4f48",
+                                colorBorder: "rgba(20, 184, 166, .45)",
+                                colorBgContainer: "#dffaf3",
+                                colorBgElevated: "#f7fffc",
                             },
-                            {
-                                value: "Disqualified"
+                            components: {
+                                Select: {
+                                    selectorBg: "#dffaf3",
+                                    optionActiveBg: "#d9f9f1",
+                                    optionSelectedBg: "#14b8a6",
+                                    optionSelectedColor: "#ffffff",
+                                    hoverBorderColor: "#14b8a6",
+                                    activeBorderColor: "#14b8a6",
+                                    activeOutlineColor: "rgba(20, 184, 166, .18)",
+                                },
+                            },
+                        }}
+                    >
+                        <Select
+                            className={`review-select review-result-select ${hasFinalResult ? "review-result-select-locked" : ""}`}
+                            popupClassName="review-result-select-dropdown"
+                            open={hasFinalResult ? false : undefined}
+                            value={
+                                selectedRawResultIds.includes(record._id)
+                                    ? "Disqualified"
+                                    : "Qualified"
                             }
-                        ]}
-                    />
+                            tabIndex={hasFinalResult ? -1 : 0}
+                            style={{
+                                width: 160
+                            }}
+                            onChange={(value) => {
+                                if (hasFinalResult) return;
+
+                                if (value === "Disqualified") {
+
+                                    setSelectedRawResultIds(prev =>
+                                        prev.includes(record._id)
+                                            ? prev
+                                            : [...prev, record._id]
+                                    );
+
+                                    setDisqualifiedHorseIds(prev =>
+                                        prev.includes(record.horseId)
+                                            ? prev
+                                            : [...prev, record.horseId]
+                                    );
+
+                                } else {
+
+                                    setSelectedRawResultIds(prev =>
+                                        prev.filter(id => id !== record._id)
+                                    );
+
+                                    setDisqualifiedHorseIds(prev =>
+                                        prev.filter(id => id !== record.horseId)
+                                    );
+
+                                }
+
+                            }}
+                            options={[
+                                {
+                                    value: "Qualified"
+                                },
+                                {
+                                    value: "Disqualified"
+                                }
+                            ]}
+                        />
+                    </ConfigProvider>
                 );
 
             },
@@ -575,11 +629,37 @@ export default function RefereeRaceDetail() {
             title: "Status",
             render: () => (
                 <Tag
-                    color="success"
                     className="race-status-tag"
                 >
-                    Assigned
+                    Confirmed
                 </Tag>
+            ),
+        },
+        {
+            title: "Action",
+
+            align: "center",
+
+            render: (_, record) => (
+
+                <Button
+                    danger
+                    className="reject-btn"
+                    size="middle"
+                    loading={removingHorse}
+                    disabled={
+                        race.status !== "Scheduled" ||
+                        removingHorse
+                    }
+                    onClick={() => {
+                        setSelectedRegistrationId(record.registrationId);
+                        setRejectReason("");
+                        setRejectModalOpen(true);
+                    }}
+                >
+                    Reject
+                </Button>
+
             ),
         },
     ];
@@ -590,20 +670,26 @@ export default function RefereeRaceDetail() {
             try {
                 setSavingCondition(true);
 
+                const formattedValues = {
+                  ...values,
+                  windSpeed:
+                    values.windSpeed !== undefined && values.windSpeed !== null
+                      ? Number(values.windSpeed)
+                      : 0,
+                };
+
                 if (condition?._id) {
-                    const updated =
-                        await updateRaceCondition(
-                            id,
-                            values
-                        );
+                    const updated = await updateRaceCondition(
+                      id,
+                      formattedValues,
+                    );
 
                     setCondition(updated);
                 } else {
-                    const created =
-                        await createRaceCondition({
-                            raceId: id,
-                            ...values,
-                        });
+                    const created = await createRaceCondition({
+                      raceId: id,
+                      ...formattedValues,
+                    });
 
                     setCondition(created);
                 }
@@ -649,17 +735,11 @@ export default function RefereeRaceDetail() {
 
             const result = await runSimulation(id);
 
-            console.log(result);
 
             message.success("Simulation completed successfully.");
 
             await loadData();
         } catch (error) {
-            console.log(error);
-            console.log(error.response);
-            console.log(error.response?.status);
-            console.log(error.response?.data);
-
             message.error(
                 error.response?.data?.message ||
                 "Cannot run simulation."
@@ -691,62 +771,42 @@ export default function RefereeRaceDetail() {
             }
         };
 
-    const handleSubmitFinalReview =
-        async (values) => {
-            try {
-                setReportLoading(true);
+    const handleSubmitReport = async () => {
 
-                console.log(rawResults);
-                console.log(disqualifiedHorseIds);
+        try {
 
-                const payload = {};
+            setReportLoading(true);
 
-                if (selectedRawResultIds.length) {
+            const payload = {};
 
-                    payload.rawResultId =
-                        selectedRawResultIds;
-
-                }
-
-                if (reportReason.trim()) {
-
-                    payload.reason =
-                        reportReason.trim();
-
-                }
-
-                console.log("Payload:", payload);
-
-                await createEndReport(id, payload);
-
-                const reports = await getReports(id);
-
-                const endReport = reports.find(
-                    item =>
-                        item.type?.toLowerCase() === "end"
-                );
-
-                setReport(endReport || null);
-
-                await loadData();
-
-                message.success(
-                    "Report submitted."
-                );
-            } catch (error) {
-                console.log(error);
-
-                console.log("Status:", error.response?.status);
-                console.log("Data:", error.response?.data);
-
-                message.error(
-                    error.response?.data?.message ??
-                    "Cannot submit report"
-                );
-            } finally {
-                setReportLoading(false);
+            if (selectedRawResultIds.length) {
+                payload.rawResultId = selectedRawResultIds;
             }
-        };
+
+            if (reportReason.trim()) {
+                payload.reason = reportReason.trim();
+            }
+
+            await createEndReport(id, payload);
+
+            message.success("Report submitted.");
+
+            await loadData();
+
+        } catch (error) {
+
+            message.error(
+                error.message ??
+                "Cannot submit report."
+            );
+
+        } finally {
+
+            setReportLoading(false);
+
+        }
+
+    };
 
     const handleConfirmFinalResult = async () => {
 
@@ -754,36 +814,22 @@ export default function RefereeRaceDetail() {
 
             setConfirmLoading(true);
 
-            console.log("Race:", id);
-
-            console.log(disqualifiedHorseIds);
-
-            const horseIds = rawResults
-                .filter(item =>
-                    selectedRawResultIds.includes(item._id)
-                )
-                .map(item => item.horseId);
-
-            const result = await confirmRawResults(
+            await confirmRawResults(
                 id,
-                horseIds
+                disqualifiedHorseIds
             );
 
-            console.log(result);
-
-            message.success(result.message);
-
-            setFinalResults(result.finalRankings);
+            message.success(
+                "Final result confirmed."
+            );
 
             await loadData();
 
         } catch (error) {
 
-            console.log(error.response?.data);
-
             message.error(
-                error.response?.data?.message ??
-                "Cannot confirm result."
+                error.message ??
+                "Cannot confirm final result."
             );
 
         } finally {
@@ -793,6 +839,8 @@ export default function RefereeRaceDetail() {
         }
 
     };
+
+
 
     if (loading) {
         return (
@@ -843,15 +891,15 @@ export default function RefereeRaceDetail() {
                             </Typography.Text>
 
                             <Space wrap>
-                                <Tag color={statusColor(race.status)}>
+                                <Tag className="race-status-main-tag">
                                     {race.status}
                                 </Tag>
 
-                                <Tag color="blue">
+                                <Tag className="race-tag-gold">
                                     Round {race.roundNumber}
                                 </Tag>
 
-                                <Tag color="purple">
+                                <Tag className="race-tag-cyan">
                                     Race #{race.raceOrder}
                                 </Tag>
                             </Space>
@@ -945,9 +993,7 @@ export default function RefereeRaceDetail() {
                     >
                         <Descriptions.Item label="Status">
                             <Tag
-                                color={statusColor(
-                                    race.status
-                                )}
+                                className="race-status-main-tag"
                             >
                                 {race.status}
                             </Tag>
@@ -976,11 +1022,11 @@ export default function RefereeRaceDetail() {
                                         {raceCourse.location}
                                     </Typography.Text>
 
-                                    <Tag color="cyan">
+                                    <Tag className="race-tag-cyan">
                                         {raceCourse.distance}
                                     </Tag>
 
-                                    <Tag color="processing">
+                                    <Tag className="race-track-tag">
                                         {raceCourse.trackType}
                                     </Tag>
                                 </Space>
@@ -995,22 +1041,18 @@ export default function RefereeRaceDetail() {
                                     {referee?.fullName || "-"}
                                 </Typography.Text>
 
-                                <Tag color="green">
+                                <Tag className="race-status-main-tag">
                                     {referee.role}
                                 </Tag>
                             </Space>
                         </Descriptions.Item>
 
                         <Descriptions.Item label="Date">
-                            {new Date(
-                                race.date
-                            ).toLocaleDateString()}
+                            {race.date ? dayjs.utc(race.date).format("DD/MM/YYYY") : "N/A"}
                         </Descriptions.Item>
 
                         <Descriptions.Item label="Start Time">
-                            {new Date(
-                                race.startTime
-                            ).toLocaleString()}
+                            {race.startTime ? dayjs.utc(race.startTime).format("HH:mm DD/MM/YYYY") : "N/A"}
                         </Descriptions.Item>
                     </Descriptions>
                 </Card>
@@ -1176,13 +1218,14 @@ export default function RefereeRaceDetail() {
                             }
                         />
                     ) : (
-                        <div className="rounded-2xl overflow-hidden">
+                        <div className="race-table-frame">
                             <Table
                                 className="race-table"
                                 bordered={false}
                                 pagination={false}
                                 size="large"
-                                rowClassName={() => "bg-transparent"}
+                                rowClassName={() => "race-transparent-row"}
+                                rowHoverable={false}
                                 bordered={false}
                                 size="middle"
                                 rowKey={(record) => record.registrationId}
@@ -1234,9 +1277,7 @@ export default function RefereeRaceDetail() {
                         <Descriptions.Item label="Track">
                             {condition?.trackCondition ? (
                                 <Tag
-                                    color={trackConditionColor(
-                                        condition.trackCondition
-                                    )}
+                                    className="race-track-tag"
                                 >
                                     {condition.trackCondition}
                                 </Tag>
@@ -1248,7 +1289,7 @@ export default function RefereeRaceDetail() {
                 </Card>
 
                 <Card
-                    className="race-detail-card"
+                    className="race-detail-card race-condition-card"
                     styles={{
                         header: {
                             color: "white",
@@ -1278,13 +1319,31 @@ export default function RefereeRaceDetail() {
                             }
                         >
                             <Select
-                                className="race-select"
+                                className="race-select race-condition-select"
                                 popupClassName="dark-select"
+                                classNames={{
+                                    root: "race-condition-select-root",
+                                    popup: {
+                                        root: "dark-select",
+                                    },
+                                }}
+                                styles={{
+                                    root: {
+                                        backgroundColor: "#0b3d37",
+                                        borderColor: "rgba(46, 196, 182, .45)",
+                                    },
+                                    content: {
+                                        color: "#eafffb",
+                                    },
+                                    input: {
+                                        color: "#eafffb",
+                                    },
+                                }}
                                 options={[
                                     { value: "Sunny" },
                                     { value: "Cloudy" },
                                     { value: "Rainy" },
-                                    { value: "Snowy" },
+                                    { value: "Windy" },
                                 ]}
                             />
                         </Form.Item>
@@ -1296,13 +1355,20 @@ export default function RefereeRaceDetail() {
                             }
                             name="windSpeed"
                         >
-                            <InputNumber
-                                className="race-input-number"
-                                min={0}
-                                max={100}
-                                addonAfter="km/h"
-                                style={{ width: "100%" }}
-                            />
+                            <Space.Compact style={{ width: "100%" }}>
+                                <InputNumber
+                                    className="race-input-number"
+                                    min={0}
+                                    max={100}
+                                    style={{ width: "100%" }}
+                                />
+                                <Button
+                                    className="race-speed-unit"
+                                    disabled
+                                >
+                                    km/h
+                                </Button>
+                            </Space.Compact>
                         </Form.Item>
 
                         <Form.Item
@@ -1314,8 +1380,26 @@ export default function RefereeRaceDetail() {
                             name="trackCondition"
                         >
                             <Select
-                                className="race-select"
+                                className="race-select race-condition-select"
                                 popupClassName="dark-select"
+                                classNames={{
+                                    root: "race-condition-select-root",
+                                    popup: {
+                                        root: "dark-select",
+                                    },
+                                }}
+                                styles={{
+                                    root: {
+                                        backgroundColor: "#0b3d37",
+                                        borderColor: "rgba(46, 196, 182, .45)",
+                                    },
+                                    content: {
+                                        color: "#eafffb",
+                                    },
+                                    input: {
+                                        color: "#eafffb",
+                                    },
+                                }}
                                 options={[
                                     { value: "Good" },
                                     { value: "Muddy" },
@@ -1358,11 +1442,9 @@ export default function RefereeRaceDetail() {
                         <Timeline mode="left"
                             items={[
                                 {
-                                    color: "green",
+                                    color: "#14b8a6",
                                     children: `Created: ${race.createdAt
-                                        ? new Date(
-                                            race.createdAt
-                                        ).toLocaleString()
+                                        ? dayjs.utc(race.createdAt).format("HH:mm DD/MM/YYYY")
                                         : "-"
                                         }`,
                                 },
@@ -1372,9 +1454,7 @@ export default function RefereeRaceDetail() {
                                             ? "green"
                                             : "gray",
                                     children: `Referee Confirmed: ${race.refereeConfirmedAt
-                                        ? new Date(
-                                            race.refereeConfirmedAt
-                                        ).toLocaleString()
+                                        ? dayjs.utc(race.refereeConfirmedAt).format("HH:mm DD/MM/YYYY")
                                         : "-"
                                         }`,
                                 },
@@ -1384,9 +1464,7 @@ export default function RefereeRaceDetail() {
                                             ? "green"
                                             : "gray",
                                     children: `Simulated: ${race.simulatedAt
-                                        ? new Date(
-                                            race.simulatedAt
-                                        ).toLocaleString()
+                                        ? dayjs.utc(race.simulatedAt).format("HH:mm DD/MM/YYYY")
                                         : "-"
                                         }`,
                                 },
@@ -1426,7 +1504,7 @@ export default function RefereeRaceDetail() {
 
                     <Button
                         type="primary"
-                        className="race-detail-btn"
+                        className="race-detail-btn race-review-btn"
                         size="large"
                         onClick={() => setReviewOpen(true)}
                     >
@@ -1438,8 +1516,6 @@ export default function RefereeRaceDetail() {
                     open={reviewOpen}
                     onClose={() => setReviewOpen(false)}
 
-                    participants={participants}
-
                     rawResults={rawResults}
                     rawColumns={rawColumns}
 
@@ -1447,12 +1523,12 @@ export default function RefereeRaceDetail() {
                     finalColumns={finalColumns}
 
                     report={report}
+                    confirmLoading={confirmLoading}
 
                     reportLoading={reportLoading}
-                    confirmLoading={confirmLoading}
                     hasFinalResult={hasFinalResult}
 
-                    handleSubmitFinalReview={handleSubmitFinalReview}
+                    handleSubmitReport={handleSubmitReport}
                     handleConfirmFinalResult={handleConfirmFinalResult}
 
                     selectedRawResultIds={selectedRawResultIds}
@@ -1461,6 +1537,31 @@ export default function RefereeRaceDetail() {
                     reportReason={reportReason}
                     setReportReason={setReportReason}
                 />
+
+                <Modal
+                    className="reject-modal"
+                    title="Reject Registration"
+                    open={rejectModalOpen}
+                    onCancel={() => {
+                        setRejectModalOpen(false);
+                        setRejectReason("");
+                        setSelectedRegistrationId(null);
+                    }}
+                    onOk={handleRemoveHorse}
+                    okText="Reject"
+                    confirmLoading={removingHorse}
+                >
+                    <Typography.Paragraph>
+                        Please enter the reason for rejecting this registration.
+                    </Typography.Paragraph>
+
+                    <Input.TextArea
+                        rows={4}
+                        value={rejectReason}
+                        onChange={(e) => setRejectReason(e.target.value)}
+                        placeholder="Reason..."
+                    />
+                </Modal>
 
                 <RefereeHorseDetailModal
                     open={horseOpen}

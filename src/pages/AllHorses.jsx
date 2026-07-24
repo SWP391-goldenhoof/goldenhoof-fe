@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { API_BASE_URL } from "../api/client";
 import { getHorses } from "../api/services/horse.service";
@@ -38,43 +38,47 @@ export default function AllHorses() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
-  const [sort, setSort] = useState("name-asc");
+  const [sortWinRate, setSortWinRate] = useState("");
+  const [sortTotalWin, setSortTotalWin] = useState("");
   const [page, setPage] = useState(1);
 
   useEffect(() => {
-    let mounted = true;
-    getHorses()
-      .then((data) => {
-        if (mounted) setHorses((data || []).map(normalizeHorse));
-      })
-      .catch(() => mounted && setHorses([]))
-      .finally(() => mounted && setLoading(false));
-    return () => {
-      mounted = false;
-    };
-  }, []);
+    const timer = setTimeout(async () => {
+      try {
+        setLoading(true);
 
-  const statuses = useMemo(
-    () => [...new Set(horses.map((horse) => horse.status).filter(Boolean))],
-    [horses],
-  );
-  const visibleHorses = useMemo(() => {
-    const query = search.trim().toLowerCase();
-    return horses
-      .filter(
-        (horse) =>
-          (!query ||
-            horse.name.toLowerCase().includes(query) ||
-            horse.owner.toLowerCase().includes(query)) &&
-          (status === "all" || horse.status === status),
-      )
-      .sort((first, second) => {
-        if (sort === "wins-desc") return second.wins - first.wins;
-        if (sort === "rate-desc") return second.winRate - first.winRate;
-        if (sort === "name-desc") return second.name.localeCompare(first.name);
-        return first.name.localeCompare(second.name);
-      });
-  }, [horses, search, sort, status]);
+        const params = {
+          search: search || undefined,
+          status: status === "all" ? undefined : status,
+          sortWinRate: sortWinRate || undefined,
+          sortTotalWin: sortTotalWin || undefined,
+        };
+
+        const data = await getHorses(params);
+
+        setHorses((data || []).map(normalizeHorse));
+      } catch {
+        setHorses([]);
+      } finally {
+        setLoading(false);
+      }
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [search,
+    status,
+    sortWinRate,
+    sortTotalWin,]);
+
+  const statuses = [
+    "IDLE",
+    "INJURED",
+    "REGISTERED",
+    "RACING",
+    "SUSPENDED",
+  ];
+
+  const visibleHorses = horses;
   const paginatedHorses = visibleHorses.slice(
     (page - 1) * PAGE_SIZE,
     page * PAGE_SIZE,
@@ -82,39 +86,66 @@ export default function AllHorses() {
 
   useEffect(() => {
     setPage(1);
-  }, [search, sort, status]);
+  }, [
+    search,
+    status,
+    sortWinRate,
+    sortTotalWin,
+  ]);
 
   return (
     <main className="explore-page">
       <div className="explore-shell">
-        <Link className="explore-back" to="/home">← Về Home</Link>
+        <Link className="explore-back" to="/home">← Back Home</Link>
         <header className="explore-header">
           <div>
             <span className="explore-eyebrow">GOLDEN HOOF</span>
             <h1>All Horses</h1>
-            <p>Khám phá toàn bộ ngựa trên hệ thống.</p>
+            <p>View all horse</p>
           </div>
-          <span className="explore-count">{visibleHorses.length} ngựa</span>
+          <span className="explore-count">{visibleHorses.length} horses</span>
         </header>
         <div className="explore-toolbar">
           <input
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            placeholder="Tìm theo tên ngựa hoặc chủ sở hữu…"
+            placeholder="Search by horse name"
           />
-          <select value={status} onChange={(event) => setStatus(event.target.value)}>
-            <option value="all">Tất cả trạng thái</option>
-            {statuses.map((item) => <option value={item} key={item}>{item}</option>)}
+
+          <select
+            value={status}
+            onChange={(event) => setStatus(event.target.value)}
+          >
+            <option value="all">All status</option>
+
+            {statuses.map((item) => (
+              <option key={item} value={item}>
+                {item}
+              </option>
+            ))}
           </select>
-          <select value={sort} onChange={(event) => setSort(event.target.value)}>
-            <option value="name-asc">Tên A → Z</option>
-            <option value="name-desc">Tên Z → A</option>
-            <option value="wins-desc">Nhiều chiến thắng nhất</option>
-            <option value="rate-desc">Win rate cao nhất</option>
+
+          <select
+            value={sortWinRate}
+            onChange={(e) => setSortWinRate(e.target.value)}
+          >
+            <option value="">Win Rate</option>
+            <option value="asc">Ascending</option>
+            <option value="desc">Descending</option>
           </select>
+
+          <select
+            value={sortTotalWin}
+            onChange={(e) => setSortTotalWin(e.target.value)}
+          >
+            <option value="">Total Wins</option>
+            <option value="asc">Ascending</option>
+            <option value="desc">Descending</option>
+          </select>
+
         </div>
         {loading ? (
-          <div className="explore-state">Đang tải danh sách ngựa…</div>
+          <div className="explore-state">Loading</div>
         ) : visibleHorses.length ? (
           <section className="explore-grid">
             {paginatedHorses.map((horse) => (
@@ -139,7 +170,7 @@ export default function AllHorses() {
               </article>
             ))}
           </section>
-        ) : <div className="explore-state">Không tìm thấy ngựa phù hợp.</div>}
+        ) : <div className="explore-state">No horse found</div>}
         <Pagination
           page={page}
           totalItems={visibleHorses.length}

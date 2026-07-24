@@ -4,6 +4,7 @@ import {
   Avatar,
   Button,
   Card,
+  Col,
   Descriptions,
   Empty,
   Form,
@@ -12,7 +13,10 @@ import {
   Modal,
   Popconfirm,
   Select,
+  Skeleton,
   Space,
+  Row,
+  Statistic,
   Table,
   Tabs,
   Tag,
@@ -114,6 +118,27 @@ export default function OwnerHorses() {
       return matchesKeyword && matchesStatus;
     });
   }, [keyword, rows, statusFilter]);
+
+  const horseStats = useMemo(() => {
+    const total = rows.length;
+    const idle = rows.filter((horse) =>
+      String(horse.status || "")
+        .toLowerCase()
+        .includes("idle"),
+    ).length;
+    const registered = rows.filter((horse) =>
+      String(horse.status || "")
+        .toLowerCase()
+        .includes("registered"),
+    ).length;
+    const injured = rows.filter((horse) =>
+      String(horse.status || "")
+        .toLowerCase()
+        .includes("injured"),
+    ).length;
+
+    return { total, idle, registered, injured };
+  }, [rows]);
 
   function openEditModal(horse) {
     setEditingHorse(horse);
@@ -408,12 +433,18 @@ export default function OwnerHorses() {
             <Avatar size={84} src={getImageUrl(detailHorse.imageUrl)}>
               {getHorseInitial(detailHorse.name)}
             </Avatar>
-            <Space direction="vertical" size={6} className="owner-detail-heading">
+            <Space
+              direction="vertical"
+              size={6}
+              className="owner-detail-heading"
+            >
               <Typography.Title level={4} className="owner-detail-title">
                 {detailHorse.name || "Unnamed horse"}
               </Typography.Title>
               <Space size={8} wrap>
-                <Tag color={getHorseStatusColor(detailHorse.status)}>{detailHorse.status}</Tag>
+                <Tag color={getHorseStatusColor(detailHorse.status)}>
+                  {detailHorse.status}
+                </Tag>
                 <Typography.Text type="secondary">
                   {detailHorse.color || "No color"}
                 </Typography.Text>
@@ -437,7 +468,9 @@ export default function OwnerHorses() {
           </div>
 
           <Descriptions bordered size="small" column={{ xs: 1, sm: 2 }}>
-            <Descriptions.Item label="Color">{detailHorse.color || "N/A"}</Descriptions.Item>
+            <Descriptions.Item label="Color">
+              {detailHorse.color || "N/A"}
+            </Descriptions.Item>
             <Descriptions.Item label="Height">
               {detailHorse.height ? `${detailHorse.height} m` : "N/A"}
             </Descriptions.Item>
@@ -474,8 +507,17 @@ export default function OwnerHorses() {
             {
               title: "Race date",
               dataIndex: "raceDate",
-              render: (value) =>
-                value ? new Date(value).toLocaleDateString("vi-VN") : "N/A",
+              render: (value) => {
+                if (!value) return "N/A";
+                const date = new Date(value);
+                if (isNaN(date.getTime())) return "N/A";
+
+                const day = String(date.getDate()).padStart(2, "0");
+                const month = String(date.getMonth() + 1).padStart(2, "0");
+                const year = date.getFullYear();
+
+                return `${day}/${month}/${year}`;
+              },
               responsive: ["md"],
             },
             { title: "Raw rank", dataIndex: "rawRank", width: 100 },
@@ -492,12 +534,56 @@ export default function OwnerHorses() {
     <Space direction="vertical" size={16} className="owner-page-stack">
       {contextHolder}
 
+      <header className="owner-workspace-header">
+        <div>
+          <div className="owner-workspace-kicker">STABLE OVERVIEW</div>
+          <Typography.Title level={1} className="owner-workspace-title">
+            Owner Workspace
+          </Typography.Title>
+          <Typography.Text type="secondary">
+            Manage your stable, horse profiles, and registration readiness
+          </Typography.Text>
+        </div>
+        <Button
+          className="owner-workspace-refresh"
+          icon={<ReloadOutlined />}
+          loading={loading}
+          onClick={loadHorses}
+        >
+          Refresh
+        </Button>
+      </header>
+
       {errorMessage && <Alert type="warning" showIcon message={errorMessage} />}
 
+      <Row gutter={[16, 16]} className="owner-workspace-stat-row">
+        <Col xs={24} sm={12} xl={6}>
+          <Card className="owner-workspace-stat-card">
+            <Statistic title="Total Horses" value={horseStats.total} />
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} xl={6}>
+          <Card className="owner-workspace-stat-card">
+            <Statistic title="Idle" value={horseStats.idle} />
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} xl={6}>
+          <Card className="owner-workspace-stat-card">
+            <Statistic title="Registered" value={horseStats.registered} />
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} xl={6}>
+          <Card className="owner-workspace-stat-card">
+            <Statistic title="Injured" value={horseStats.injured} />
+          </Card>
+        </Col>
+      </Row>
+
       <Card
+        className="owner-horses-card"
         title="My horses"
         extra={
-          <Space wrap>
+          <Space className="owner-horses-toolbar" wrap>
             <Input.Search
               allowClear
               placeholder="Search horse"
@@ -526,16 +612,103 @@ export default function OwnerHorses() {
           </Space>
         }
       >
-        <Table
-          className="owner-horses-table"
-          rowKey="id"
-          loading={loading}
-          columns={columns}
-          dataSource={filteredRows}
-          size="middle"
-          pagination={{ pageSize: 5, showSizeChanger: false }}
-          locale={{ emptyText: "No horses match the current filters" }}
-        />
+        <div className="owner-horses-table-wrap">
+          <Table
+            className="owner-horses-table"
+            rowKey="id"
+            loading={loading}
+            columns={columns}
+            dataSource={filteredRows}
+            size="middle"
+            pagination={{ pageSize: 5, showSizeChanger: false }}
+            locale={{ emptyText: "No horses match the current filters" }}
+          />
+        </div>
+
+        <div className="owner-horse-mobile-list">
+          {loading ? (
+            <Skeleton active paragraph={{ rows: 4 }} />
+          ) : filteredRows.length === 0 ? (
+            <Empty description="No horses match the current filters" />
+          ) : (
+            filteredRows.map((horse) => (
+              <article className="owner-horse-mobile-card" key={horse.id}>
+                <div className="owner-horse-mobile-main">
+                  <Upload
+                    name="file"
+                    accept="image/*"
+                    showUploadList={false}
+                    customRequest={(options) =>
+                      handleHorseAvatarUpload(horse, options)
+                    }
+                    disabled={uploadingHorseId === horse.id}
+                  >
+                    <button
+                      type="button"
+                      className="horse-avatar-upload"
+                      title="Upload horse photo"
+                      aria-label={`Upload photo for ${horse.name || "horse"}`}
+                      disabled={uploadingHorseId === horse.id}
+                    >
+                      <Avatar size={48} src={getImageUrl(horse.imageUrl)}>
+                        {uploadingHorseId === horse.id ? (
+                          <CameraOutlined />
+                        ) : (
+                          getHorseInitial(horse.name)
+                        )}
+                      </Avatar>
+                      <span className="horse-avatar-upload-icon">
+                        <CameraOutlined />
+                      </span>
+                    </button>
+                  </Upload>
+
+                  <div className="owner-horse-mobile-copy">
+                    <Typography.Text strong>
+                      {horse.name || "Unnamed horse"}
+                    </Typography.Text>
+                    <Typography.Text type="secondary">
+                      {horse.color || "No color"}
+                    </Typography.Text>
+                  </div>
+
+                  <Tag color={getHorseStatusColor(horse.status)}>
+                    {horse.status}
+                  </Tag>
+                </div>
+
+                <div className="owner-horse-mobile-actions">
+                  <Button
+                    size="small"
+                    type="primary"
+                    icon={<EyeOutlined />}
+                    onClick={() => openDetailModal(horse)}
+                  >
+                    Detail
+                  </Button>
+                  <Button
+                    size="small"
+                    icon={<EditOutlined />}
+                    onClick={() => openEditModal(horse)}
+                  >
+                    Edit
+                  </Button>
+                  <Popconfirm
+                    title="Delete horse?"
+                    description="This action cannot be undone."
+                    okText="Delete"
+                    okButtonProps={{ danger: true }}
+                    onConfirm={() => handleDelete(horse)}
+                  >
+                    <Button size="small" danger icon={<DeleteOutlined />}>
+                      Delete
+                    </Button>
+                  </Popconfirm>
+                </div>
+              </article>
+            ))
+          )}
+        </div>
       </Card>
 
       <Modal
@@ -548,7 +721,9 @@ export default function OwnerHorses() {
       >
         <Tabs items={detailTabs} defaultActiveKey="info" />
         {detailLoading && (
-          <Typography.Text type="secondary">Loading latest horse detail...</Typography.Text>
+          <Typography.Text type="secondary">
+            Loading latest horse detail...
+          </Typography.Text>
         )}
       </Modal>
 
@@ -609,7 +784,9 @@ export default function OwnerHorses() {
           <Form.Item label="Horse image">
             <div className="owner-edit-image-field">
               <Avatar size={72} src={getImageUrl(editImageUrl)}>
-                {getHorseInitial(form.getFieldValue("name") || editingHorse?.name)}
+                {getHorseInitial(
+                  form.getFieldValue("name") || editingHorse?.name,
+                )}
               </Avatar>
               <Space direction="vertical" size={6}>
                 <Upload
@@ -619,11 +796,17 @@ export default function OwnerHorses() {
                   customRequest={handleEditImageUpload}
                   disabled={uploadingEditImage}
                 >
-                  <Button icon={<CameraOutlined />} loading={uploadingEditImage}>
+                  <Button
+                    icon={<CameraOutlined />}
+                    loading={uploadingEditImage}
+                  >
                     Upload image
                   </Button>
                 </Upload>
-                <Typography.Text type="secondary" className="owner-edit-image-note">
+                <Typography.Text
+                  type="secondary"
+                  className="owner-edit-image-note"
+                >
                   JPG, PNG, WEBP up to 5MB
                 </Typography.Text>
               </Space>
@@ -637,10 +820,127 @@ export default function OwnerHorses() {
       </Modal>
 
       <style>{`
+        .owner-role-layout .role-header {
+          display: none;
+        }
+
+        .owner-role-layout .role-content {
+          padding: 32px;
+        }
+
+        .owner-page-stack {
+          color: #0d2321;
+        }
+
+        .owner-workspace-header {
+          display: flex;
+          align-items: flex-end;
+          justify-content: space-between;
+          gap: 20px;
+          margin-bottom: 4px;
+        }
+
+        .owner-workspace-kicker {
+          color: #087a6d;
+          font-size: 12px;
+          font-weight: 950;
+          letter-spacing: 1.5px;
+        }
+
+        .owner-workspace-title.ant-typography {
+          margin: 5px 0 0;
+          color: #06332e;
+          font-size: clamp(30px, 4vw, 44px);
+          font-weight: 950;
+          letter-spacing: 0;
+        }
+
+        .owner-workspace-refresh.ant-btn {
+          border-color: #bdeee5;
+          color: #006755;
+          background: #ffffff;
+          font-weight: 850;
+        }
+
+        .owner-workspace-stat-row {
+          width: 100%;
+        }
+
+        .owner-workspace-stat-card {
+          height: 100%;
+          border: 1px solid #ccefe7;
+          border-radius: 12px;
+          box-shadow: 0 14px 36px rgba(13, 70, 63, 0.07);
+        }
+
+        .owner-workspace-stat-card .ant-statistic-title {
+          color: #52726e;
+          font-weight: 800;
+        }
+
+        .owner-workspace-stat-card .ant-statistic-content {
+          color: #06332e;
+          font-weight: 950;
+        }
+
+        .owner-workspace-stat-card .ant-statistic-content-value {
+          font-size: 28px;
+        }
+
+        .owner-horses-card.ant-card {
+          border: 1px solid #ccefe7;
+          border-radius: 12px;
+          box-shadow: 0 14px 36px rgba(13, 70, 63, 0.06);
+        }
+
+        .owner-horses-card .ant-card-head {
+          align-items: center;
+          gap: 12px;
+          border-bottom-color: #e1ece9;
+          min-height: 68px;
+        }
+
+        .owner-horses-card .ant-card-head-title {
+          color: #06332e;
+          font-size: 20px;
+          font-weight: 900;
+        }
+
+        .owner-horses-toolbar {
+          justify-content: flex-end;
+          gap: 10px !important;
+        }
+
+        .owner-filter-search.ant-input-search .ant-input,
+        .owner-status-select.ant-select .ant-select-selector {
+          border-color: #bdeee5 !important;
+          color: #06332e !important;
+          background: #ffffff !important;
+          box-shadow: none !important;
+        }
+
+        .owner-filter-search.ant-input-search .ant-input-search-button {
+          border-color: #bdeee5 !important;
+          color: #006755 !important;
+          background: #f7fffc !important;
+        }
+
+        .owner-status-select.ant-select .ant-select-selection-item,
+        .owner-status-select.ant-select .ant-select-arrow {
+          color: #06332e !important;
+        }
+
+        .owner-horses-table-wrap {
+          width: 100%;
+          overflow-x: auto;
+          padding: 12px 0 0;
+        }
+
         .owner-horses-table .ant-table {
-          border: 1px solid #e8f1ef;
+          border: 1px solid #ccefe7;
           border-radius: 12px;
           overflow: hidden;
+          box-shadow: 0 12px 30px rgba(13, 70, 63, 0.04);
         }
 
         .owner-horses-table .ant-table-container {
@@ -652,10 +952,10 @@ export default function OwnerHorses() {
         }
 
         .owner-horses-table .ant-table-thead > tr > th {
-          background: #f7fbfa !important;
-          color: #173f3a;
+          background: #f3fbf9 !important;
+          color: #06332e;
           font-weight: 900;
-          border-bottom-color: #e1ece9 !important;
+          border-bottom-color: #ccefe7 !important;
         }
 
         .owner-horses-table .ant-table-tbody > tr > td {
@@ -677,7 +977,7 @@ export default function OwnerHorses() {
 
         .owner-horse-name {
           display: block;
-          color: #173f3a;
+          color: #06332e;
           font-size: 15px;
           line-height: 1.3;
         }
@@ -699,6 +999,49 @@ export default function OwnerHorses() {
 
         .owner-horse-actions .ant-btn-icon-only {
           width: 32px;
+        }
+
+        .owner-horse-mobile-list {
+          display: none;
+        }
+
+        .owner-horse-mobile-card {
+          display: grid;
+          gap: 14px;
+          padding: 14px;
+          border: 1px solid #ccefe7;
+          border-radius: 12px;
+          background: #ffffff;
+          box-shadow: 0 10px 24px rgba(13, 70, 63, 0.05);
+        }
+
+        .owner-horse-mobile-main {
+          display: grid;
+          grid-template-columns: auto minmax(0, 1fr) auto;
+          align-items: center;
+          gap: 12px;
+        }
+
+        .owner-horse-mobile-copy {
+          min-width: 0;
+          display: grid;
+          gap: 2px;
+        }
+
+        .owner-horse-mobile-copy .ant-typography {
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .owner-horse-mobile-actions {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 8px;
+        }
+
+        .owner-horse-mobile-actions .ant-btn {
+          width: 100%;
         }
 
         .owner-detail-stack {
@@ -846,6 +1189,51 @@ export default function OwnerHorses() {
         }
 
         @media (max-width: 640px) {
+          .owner-role-layout .role-content {
+            padding: 20px;
+          }
+
+          .owner-workspace-header {
+            align-items: flex-start;
+            flex-direction: column;
+          }
+
+          .owner-workspace-refresh.ant-btn {
+            width: 100%;
+          }
+
+          .owner-horses-card .ant-card-head {
+            flex-direction: column;
+          }
+
+          .owner-horses-card .ant-card-head-title,
+          .owner-horses-card .ant-card-extra {
+            width: 100%;
+          }
+
+          .owner-horses-toolbar {
+            display: grid !important;
+            grid-template-columns: 1fr;
+            width: 100%;
+          }
+
+          .owner-horses-toolbar .ant-space-item,
+          .owner-horses-toolbar .ant-input-search,
+          .owner-horses-toolbar .ant-select,
+          .owner-horses-toolbar .ant-btn,
+          .owner-horses-toolbar a {
+            width: 100%;
+          }
+
+          .owner-horses-table-wrap {
+            display: none;
+          }
+
+          .owner-horse-mobile-list {
+            display: grid;
+            gap: 12px;
+          }
+
           .owner-horse-actions {
             justify-content: flex-start;
           }
@@ -856,6 +1244,21 @@ export default function OwnerHorses() {
 
           .owner-detail-hero {
             align-items: flex-start;
+          }
+        }
+
+        @media (max-width: 420px) {
+          .owner-horse-mobile-main {
+            grid-template-columns: auto minmax(0, 1fr);
+          }
+
+          .owner-horse-mobile-main .ant-tag {
+            grid-column: 2;
+            width: fit-content;
+          }
+
+          .owner-horse-mobile-actions {
+            grid-template-columns: 1fr;
           }
         }
       `}</style>

@@ -27,7 +27,7 @@
    HERO
 ====================================================== */
 
-.race-detail-hero {
+.race-detail-page .race-detail-hero {
 
     position: relative;
 
@@ -36,9 +36,10 @@
     border-radius: 28px !important;
 
     background:
+
         linear-gradient(145deg,
-            rgba(11, 61, 55, .98),
-            rgba(15, 80, 72, .95)) !important;
+            #0b3d37,
+            #0f766e) !important;
 
     border:
         1px solid rgba(46, 196, 182, .14);
@@ -49,15 +50,7 @@
     transition: .4s;
 }
 
-.race-detail-hero:hover {
-
-    transform: translateY(-4px);
-
-    box-shadow:
-        0 28px 65px rgba(0, 0, 0, .45);
-}
-
-.race-detail-hero::before {
+.race-detail-page .race-detail-hero::before {
 
     content: "";
 
@@ -84,7 +77,7 @@
    HERO TEXT
 ====================================================== */
 
-.race-detail-title {
+.race-detail-page .race-detail-title {
 
     color: white !important;
 
@@ -97,7 +90,7 @@
     letter-spacing: .8px;
 }
 
-.race-detail-subtitle {
+.race-detail-page .race-detail-subtitle {
 
     color: #d7ece8 !important;
 
@@ -106,7 +99,7 @@
     margin-bottom: 22px !important;
 }
 
-.race-detail-description {
+.race-detail-page .race-detail-description {
 
     color: #d7ece8 !important;
 
@@ -121,7 +114,7 @@
    HERO IMAGE
 ====================================================== */
 
-.race-detail-image {
+.race-detail-page .race-detail-image {
 
     width: 100%;
 
@@ -133,17 +126,11 @@
         0 18px 40px rgba(0, 0, 0, .35);
 }
 
-.race-detail-image:hover {
-
-    transform:
-        scale(1.04) rotate(.6deg);
-}
-
 /* ======================================================
    CARD
 ====================================================== */
 
-.race-detail-card {
+.race-detail-page .race-detail-card {
 
     overflow: hidden;
 
@@ -163,21 +150,13 @@
     transition: .35s;
 }
 
-.race-detail-card:hover {
-
-    transform: translateY(-5px);
-
-    box-shadow:
-        0 20px 45px rgba(46, 196, 182, .14);
-}
-
 /* ======================================================
    SECTION TITLE
 ====================================================== */
 
-.race-section-title {
+.race-detail-page .race-section-title {
 
-    color: white;
+    color: #dffcf7;
 
     font-size: 24px;
 
@@ -190,7 +169,7 @@
    BUTTON
 ====================================================== */
 
-.race-detail-btn {
+.race-detail-page .race-detail-btn {
     border: none !important;
     border-radius: 12px !important;
     height: 42px;
@@ -213,21 +192,12 @@
         opacity .25s;
 }
 
-.race-detail-btn:not(:disabled):hover {
-    transform: translateY(-2px);
-
-    filter: brightness(1.12);
-
-    box-shadow:
-        0 12px 28px rgba(25, 216, 157, .45);
-}
-
-.race-detail-btn:not(:disabled):active {
+.race-detail-page .race-detail-btn:not(:disabled):active {
     transform: scale(.97);
 }
 
-.race-detail-btn:disabled,
-.race-detail-btn.ant-btn-disabled {
+.race-detail-page .race-detail-btn:disabled,
+.race-detail-page .race-detail-btn.ant-btn-disabled {
     background:
         linear-gradient(135deg,
             #35424a,
@@ -244,21 +214,7 @@
     transform: none !important;
 }
 
-.race-detail-btn:disabled:hover,
-.race-detail-btn.ant-btn-disabled:hover {
-    background:
-        linear-gradient(135deg,
-            #35424a,
-            #29343b) !important;
-
-    transform: none;
-
-    filter: none;
-
-    box-shadow: none;
-}
-
-.race-detail-btn.ant-btn-loading {
+.race-detail-page .race-detail-btn.ant-btn-loading {
     filter: brightness(1.05);
 }
 
@@ -266,7 +222,7 @@
    STATISTIC CARD
 ====================================================== */
 
-.race-stat-card {
+.race-detail-page .race-stat-card {
 
     overflow: hidden;
 
@@ -275,7 +231,7 @@
     background:
         linear-gradient(145deg,
             #0b3d37,
-            #104941) !important;
+            #0f766e);
 
     border:
         1px solid rgba(46, 196, 182, .12);
@@ -286,15 +242,7 @@
         0 12px 24px rgba(0, 0, 0, .24);
 }
 
-.race-stat-card:hover {
-
-    transform: translateY(-8px);
-
-    box-shadow:
-        0 24px 45px rgba(46, 196, 182, .16);
-}
-
-.race-stat-title {
+.race-detail-page .race-stat-title {
 
     color: #d8ece8;
 
@@ -303,7 +251,7 @@
     font-weight: 600;
 }
 
-.race-stat-value {
+.race-detail-page .race-stat-value {
 
     color: white !important;
 
@@ -316,7 +264,7 @@
    DESCRIPTIONS
 ====================================================== */
 
-.race-description .ant-descriptions-view {
+.race-detail-page .race-description .ant-descriptions-view {
 
     border-radius: 18px;
 
@@ -325,68 +273,29 @@
     border: 1px solid rgba(46, 196, 182, .08);
 }
 
-.race-description .ant-descriptions-row {
-    background: transparent;
-}
-
-.race-description .ant-descriptions-item-label {
-
-    background:
-        rgba(46, 196, 182, .08) !important;
-
-    color: #67f7df !important;
-    font-weight: 700;
-}
-
-.race-description .ant-descriptions-item-content {
-
-    background: transparent !important;
-
-    color: #fff !important;
-}
-
-.race-description .ant-descriptions-bordered .ant-descriptions-item {
-
-    border-color:
-        rgba(255, 255, 255, .06);
-}
-
-/* ======================================================
-   DESCRIPTIONS
-====================================================== */
-
-.race-description .ant-descriptions-view {
-
-    border-radius: 18px;
-
-    overflow: hidden;
-
-    border: 1px solid rgba(46, 196, 182, .08);
-}
-
-.race-description .ant-descriptions-row {
+.race-detail-page .race-description .ant-descriptions-row {
 
     background: transparent;
 }
 
-.race-description .ant-descriptions-item-label {
+.race-detail-page .race-description .ant-descriptions-item-label {
 
     background:
-        rgba(46, 196, 182, .08) !important;
+        rgba(15, 118, 110, .25);
 
-    color: #7BE8DC !important;
+    color: #99f6e4 !important;
 
     font-weight: 700;
 }
 
-.race-description .ant-descriptions-item-content {
+.race-detail-page .race-description .ant-descriptions-item-content {
 
     background: transparent !important;
 
     color: white !important;
 }
 
-.race-description .ant-descriptions-bordered .ant-descriptions-item {
+.race-detail-page .race-description .ant-descriptions-bordered .ant-descriptions-item {
 
     border-color:
         rgba(255, 255, 255, .06);
@@ -396,11 +305,13 @@
    TAG
 ====================================================== */
 
-.ant-tag {
+.race-detail-page .ant-tag {
 
     border: none !important;
 
     border-radius: 999px !important;
+
+    margin: 5px;
 
     padding: 4px 14px;
 
@@ -413,14 +324,14 @@
    FORM
 ====================================================== */
 
-.ant-form-item-label>label {
+.race-detail-page .ant-form-item-label>label {
 
     color: white !important;
 
     font-weight: 600;
 }
 
-.ant-input {
+.race-detail-page .ant-input {
 
     background: #08352f !important;
 
@@ -432,7 +343,7 @@
     border-radius: 12px;
 }
 
-.ant-input:focus {
+.race-detail-page .ant-input:focus {
 
     border-color: #2EC4B6 !important;
 
@@ -440,7 +351,7 @@
         0 0 0 2px rgba(46, 196, 182, .18);
 }
 
-.ant-select-selector {
+.race-detail-page .race-select .ant-select-selector {
 
     background: #08352f !important;
 
@@ -452,7 +363,7 @@
         1px solid rgba(46, 196, 182, .15) !important;
 }
 
-.ant-select-selection-item {
+.race-detail-page .ant-select-selection-item {
 
     color: white !important;
 }
@@ -461,77 +372,111 @@
    INPUT NUMBER
 ====================================================== */
 
-.ant-input-number {
-
-    width: 100%;
-
-    background: #08352f !important;
-
-    border-radius: 12px;
-
-    border:
-        1px solid rgba(46, 196, 182, .15);
+.race-detail-page .race-input-number {
+    background: #0b3d37 !important;
+    border: 1px solid rgba(46, 196, 182, .18) !important;
 }
 
-.ant-input-number-input {
-
+.race-detail-page .race-input-number input {
     color: white !important;
 }
 
-.ant-input-number-group-addon {
+.race-detail-page .race-input-number .ant-input-number-group-addon {
+    background: #0b3d37 !important;
+    color: #ffffff !important;
+    border: 1px solid rgba(46, 196, 182, .18) !important;
+}
 
-    background: #08352f !important;
+.race-detail-page .race-input-number .ant-input-number-group-addon,
+.race-detail-page .race-input-number .ant-input-number-group-addon * {
+    color: #ffffff !important;
+}
 
-    color: white !important;
+.race-detail-page .race-input-number:focus-within {
+    border-color: #14b8a6 !important;
 
-    border:
-        1px solid rgba(46, 196, 182, .15);
+    box-shadow:
+        0 0 0 2px rgba(20, 184, 166, .18);
 }
 
 /* ======================================================
    SELECT
 ====================================================== */
 
-.dark-select {
+/* ===== Select ===== */
 
-    background: #08352f;
+.race-detail-page .race-select.ant-select {
+    width: 100%;
+}
+
+.race-detail-page .race-select.ant-select .ant-select-selector {
+    background: #0b3d37 !important;
+    border: 1px solid rgba(46, 196, 182, .18) !important;
+    color: #fff !important;
+}
+
+.race-detail-page .race-select.ant-select .ant-select-selection-item {
+    color: #fff !important;
+}
+
+.race-detail-page .race-select.ant-select .ant-select-selection-placeholder {
+    color: rgba(255, 255, 255, .55) !important;
+}
+
+.race-detail-page .race-select.ant-select .ant-select-arrow {
+    color: #fff !important;
+}
+
+.race-detail-page .race-select.ant-select.ant-select-focused .ant-select-selector {
+    border-color: #14b8a6 !important;
+    box-shadow: 0 0 0 2px rgba(20, 184, 166, .18) !important;
+}
+
+.race-detail-page .race-select.ant-select-outlined .ant-select-selector {
+    background: #0b3d37 !important;
+}
+
+.race-detail-page .race-select.ant-select-single .ant-select-selector {
+    background: #0b3d37 !important;
+}
+
+/* Dropdown */
+
+.dark-select.ant-select-dropdown {
+    background: #0b3d37 !important;
 }
 
 .dark-select .ant-select-item {
-
-    color: white;
+    color: #fff !important;
+    background: transparent !important;
 }
 
 .dark-select .ant-select-item-option-active {
-
-    background: #0f5048;
+    background: rgba(20, 184, 166, .18) !important;
 }
 
 .dark-select .ant-select-item-option-selected {
-
-    background: #0B6E4F;
-
-    color: white;
+    background: #0f766e !important;
 }
 
 /* ======================================================
    TIMELINE
 ====================================================== */
 
-.race-timeline .ant-timeline-item-content {
+.race-detail-page .race-timeline .ant-timeline-item-content {
 
     color: white !important;
 
     font-size: 15px;
 }
 
-.race-timeline .ant-timeline-item-tail {
+.race-detail-page .race-timeline .ant-timeline-item-tail {
 
     border-color:
         rgba(46, 196, 182, .3);
 }
 
-.race-timeline .ant-timeline-item-head {
+.race-detail-page .race-timeline .ant-timeline-item-head {
 
     box-shadow:
         0 0 12px rgba(46, 196, 182, .35);
@@ -541,14 +486,14 @@
    MODAL
 ====================================================== */
 
-.ant-modal-content {
+.race-detail-modal .ant-modal-content {
 
     background: #0B3D37 !important;
 
     border-radius: 22px;
 }
 
-.ant-modal-header {
+.race-detail-modal .ant-modal-header {
 
     background: #0B3D37 !important;
 
@@ -556,17 +501,17 @@
         1px solid rgba(255, 255, 255, .06);
 }
 
-.ant-modal-title {
+.race-detail-modal .ant-modal-title {
 
     color: white !important;
 }
 
-.ant-modal-close {
+.race-detail-modal .ant-modal-close {
 
     color: white !important;
 }
 
-.ant-modal-body {
+.race-detail-modal .ant-modal-body {
 
     color: white;
 }
@@ -575,7 +520,7 @@
    SPIN
 ====================================================== */
 
-.ant-spin {
+.race-detail-page .ant-spin {
 
     color: #2EC4B6;
 }
@@ -584,7 +529,7 @@
    EMPTY
 ====================================================== */
 
-.ant-empty-description {
+.race-detail-page .ant-empty-description {
 
     color: white !important;
 }
@@ -593,18 +538,18 @@
    CARD HEADER
 ====================================================== */
 
-.ant-card {
+.race-detail-page .ant-card {
 
     border: none;
 }
 
-.ant-card-head {
+.race-detail-page .ant-card-head {
 
     border-bottom:
         1px solid rgba(255, 255, 255, .06);
 }
 
-.ant-card-head-title {
+.race-detail-page .ant-card-head-title {
 
     color: white !important;
 }
@@ -613,19 +558,19 @@
    SCROLLBAR
 ====================================================== */
 
-::-webkit-scrollbar {
+.race-detail-page::-webkit-scrollbar {
 
     width: 8px;
 }
 
-::-webkit-scrollbar-thumb {
+.race-detail-page::-webkit-scrollbar-thumb {
 
     background: #2EC4B6;
 
     border-radius: 20px;
 }
 
-::-webkit-scrollbar-track {
+.race-detail-page::-webkit-scrollbar-track {
 
     background: #08352f;
 }
@@ -653,9 +598,9 @@
     }
 }
 
-.race-detail-card,
-.race-stat-card,
-.race-detail-hero {
+.race-detail-page .race-detail-card,
+.race-detail-page .race-stat-card,
+.race-detail-page .race-detail-hero {
 
     animation:
         fadeUp .45s ease;
@@ -672,7 +617,7 @@
         padding: 20px;
     }
 
-    .race-detail-title {
+    .race-detail-page .race-detail-title {
 
         font-size: 36px !important;
     }
@@ -680,31 +625,34 @@
 
 @media (max-width:768px) {
 
-    .race-detail-title {
+    .race-detail-page .race-detail-title {
 
         font-size: 30px !important;
     }
 
-    .race-section-title {
+    .race-detail-page .race-section-title {
 
         font-size: 20px;
     }
 
-    .race-detail-btn {
+    .race-detail-page .race-detail-btn {
 
         width: 100%;
     }
 }
 
-.btn-ready {
-    background: linear-gradient(135deg, #16c784, #13b672) !important;
+.race-detail-page .btn-ready {
+    background:
+        linear-gradient(135deg,
+            #f59e0b,
+            #d97706);
 }
 
-.btn-simulation {
+.race-detail-page .btn-simulation {
     background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
 }
 
-.btn-broadcast {
+.race-detail-page .btn-broadcast {
     background: linear-gradient(135deg, #ef4444, #dc2626) !important;
 }
 
@@ -712,62 +660,68 @@
    PARTICIPANT TABLE
 =========================== */
 
-.race-table {
+.race-detail-page .race-table {
     background: transparent;
 }
 
-.race-table .ant-table {
+.race-detail-page .race-table-frame {
+    border-radius: 16px;
+    overflow: hidden;
+}
+
+.race-detail-page .race-transparent-row td {
     background: transparent;
 }
 
-.race-table .ant-table-container {
+.race-detail-page .race-table .ant-table {
+    background: transparent;
+}
+
+.race-detail-page .race-table .ant-table-container {
     border-radius: 18px;
     overflow: hidden;
     border: 1px solid rgba(94, 248, 216, .12);
 }
 
-.race-table .ant-table-thead>tr>th {
+.race-detail-page .race-table .ant-table-thead>tr>th {
     background: rgba(94, 248, 216, .08);
     color: #6ef7da;
     font-weight: 700;
     border-bottom: 1px solid rgba(94, 248, 216, .12);
 }
 
-.race-table .ant-table-tbody>tr>td {
+.race-detail-page .race-table .ant-table-tbody>tr>td {
     background: transparent;
     color: white;
     border-bottom: 1px solid rgba(255, 255, 255, .05);
 }
 
-.race-table .ant-table-tbody>tr:hover>td {
-    background: rgba(94, 248, 216, .06) !important;
-}
-
-.race-table .ant-empty-description {
+.race-detail-page .race-table .ant-empty-description {
     color: rgba(255, 255, 255, .7);
 }
 
-.race-link-btn {
+.race-detail-page .race-link-btn {
     padding: 0 !important;
-    color: #5ef8d8 !important;
+    color: #2dd4bf !important;
     font-weight: 600;
 }
 
-.race-link-btn:hover {
-    color: #89ffe8 !important;
-}
-
-.race-status-tag {
+.race-detail-page .race-status-tag {
+    background: #15803d;
+    color: white;
+    border: none;
     border-radius: 999px;
     font-weight: 600;
-    padding: 2px 10px;
 }
 
-.race-gate {
+.race-detail-page .race-gate {
     width: 36px;
     height: 36px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #10b981, #06b6d4);
+    background:
+        linear-gradient(135deg,
+            #14b8a6,
+            #0f766e);
     color: white;
     display: flex;
     justify-content: center;
@@ -777,39 +731,430 @@
     box-shadow: 0 0 12px rgba(16, 185, 129, .4);
 }
 
-.race-white-text {
+.race-detail-page .race-white-text {
     color: #ffffff !important;
 }
 
-.race-sub-text {
+.race-detail-page .race-sub-text {
     color: rgba(255, 255, 255, .7) !important;
 }
 
-.race-stat-title {
+.race-detail-page .race-stat-title {
     color: rgba(255, 255, 255, .75);
     font-weight: 600;
 }
 
-.race-stat-value .ant-statistic-content {
+.race-detail-page .race-stat-value .ant-statistic-content {
     color: #fff !important;
 }
 
-.race-stat-value .ant-statistic-content-value {
+.race-detail-page .race-stat-value .ant-statistic-content-value {
     color: #fff !important;
 }
 
-.race-stat-value .ant-statistic-content-value-int {
+.race-detail-page .race-stat-value .ant-statistic-content-value-int {
     color: #fff !important;
 }
 
-.race-stat-value .ant-statistic-content-value-decimal {
+.race-detail-page .race-stat-value .ant-statistic-content-value-decimal {
     color: #fff !important;
 }
 
-.race-review-title {
+.race-detail-page .race-review-title {
     color: #fff !important;
 }
 
-.race-review-description {
+.race-detail-page .race-review-description {
     color: rgba(255, 255, 255, .72) !important;
+}
+
+/* =========================
+   Dark Select
+========================= */
+
+.race-detail-page .race-select.ant-select .ant-select-selector {
+    background: #0b3d37 !important;
+    border: 1px solid rgba(46, 196, 182, .18) !important;
+    color: white !important;
+}
+
+.race-detail-page .race-select.ant-select .ant-select-selection-item {
+    color: white !important;
+}
+
+.race-detail-page .race-select.ant-select .ant-select-selection-placeholder {
+    color: #b7d8d3 !important;
+}
+
+.race-detail-page .race-select.ant-select .ant-select-selection-search-input {
+    color: white !important;
+    background: transparent !important;
+}
+
+.race-detail-page .race-select .ant-select-selection-item {
+    color: white !important;
+}
+
+.race-detail-page .race-select .ant-select-selection-placeholder {
+    color: #9ca3af !important;
+}
+
+.race-detail-page .race-select .ant-select-arrow {
+    color: #9ca3af;
+}
+
+.race-detail-page .race-select.ant-select-focused .ant-select-selector {
+    border-color: #14b8a6 !important;
+    box-shadow: 0 0 0 2px rgba(20, 184, 166, .18);
+}
+
+.dark-select {
+    background: #111827 !important;
+}
+
+.dark-select .ant-select-item {
+    color: white;
+}
+
+.dark-select .ant-select-item-option-selected {
+    background: #0f766e !important;
+    color: white;
+}
+
+.dark-select .ant-select-item-option-active {
+    background: rgba(20, 184, 166, .18) !important;
+}
+
+.reject-btn {
+    background: #b91c1c;
+    border: none;
+    color: white;
+}
+
+.reject-btn:active {
+    transform: scale(.97);
+}
+
+.reject-modal .ant-modal-content {
+    background: #111827;
+    border-radius: 18px;
+    border: 1px solid rgba(255, 255, 255, .08);
+}
+
+.reject-modal .ant-modal-header {
+    background: transparent;
+    border-bottom: 1px solid rgba(255, 255, 255, .08);
+}
+
+.reject-modal .ant-modal-title {
+    color: white;
+}
+
+.reject-modal .ant-modal-close {
+    color: white;
+}
+
+.reject-modal .ant-modal-body {
+    color: white;
+}
+
+.reject-modal textarea {
+    background: #0b3d37 !important;
+    color: white !important;
+    border: 1px solid rgba(46, 196, 182, .18);
+}
+
+.reject-modal textarea::placeholder {
+    color: #9ca3af;
+}
+
+.reject-modal textarea:focus {
+    border-color: #14b8a6 !important;
+
+    box-shadow:
+        0 0 0 2px rgba(20, 184, 166, .18);
+}
+
+.review-select .ant-select-selector {
+    background: #1f2937 !important;
+    color: white !important;
+    border: 1px solid rgba(255, 255, 255, .08) !important;
+}
+
+.review-select .ant-select-selection-item {
+    color: white !important;
+}
+
+.review-select .ant-select-arrow {
+    color: white;
+}
+
+.review-table .ant-table-tbody>.ant-table-row-selected>td {
+    background: #111827 !important;
+}
+
+.review-table .ant-table-row-selected td {
+    background: #111827 !important;
+}
+
+.race-detail-page .race-track-tag {
+    background: #0f766e;
+    color: white;
+    border: none;
+    box-shadow:
+        0 0 10px rgba(20, 184, 166, .25);
+}
+
+.race-detail-page .race-status-main-tag {
+    background: #0f766e;
+    color: white;
+    border: none;
+}
+
+.race-detail-page .race-tag-cyan {
+    background: #14b8a6;
+    color: white;
+    border: none;
+}
+
+.race-detail-page .race-tag-green {
+    background: #0f766e;
+    color: white;
+    border: none;
+}
+
+.race-detail-page .race-tag-gold {
+    background: #d4a017;
+    color: white;
+    border: none;
+}
+
+.race-detail-page .race-review-btn {
+
+    background:
+        linear-gradient(135deg,
+            #0f766e,
+            #14b8a6);
+
+    box-shadow:
+        0 10px 25px rgba(20, 184, 166, .3);
+
+}
+
+/* Wrapper */
+.race-detail-page .race-input-number.ant-input-number-group-wrapper {
+    width: 100%;
+    display: block;
+}
+
+/* Group */
+.race-detail-page .race-input-number .ant-input-number-group {
+    width: 100%;
+    display: flex;
+}
+
+/* Input */
+.race-detail-page .race-input-number.ant-input-number {
+    width: 100%;
+}
+
+/* Input element */
+.race-detail-page .race-input-number input {
+    width: 100%;
+    color: white !important;
+}
+
+.race-detail-page .reject-btn,
+.race-detail-page .reject-btn.ant-btn,
+.race-detail-page .reject-btn.ant-btn-dangerous {
+    background: #dc2626 !important;
+    border-color: #dc2626 !important;
+    color: #ffffff !important;
+    box-shadow: 0 8px 18px rgba(220, 38, 38, .22);
+}
+
+.race-detail-page .reject-btn:disabled,
+.race-detail-page .reject-btn.ant-btn:disabled,
+.race-detail-page .reject-btn.ant-btn-dangerous:disabled {
+    background: #991b1b !important;
+    border-color: #991b1b !important;
+    color: rgba(255, 255, 255, .88) !important;
+    opacity: .95;
+    box-shadow: none;
+}
+
+.race-detail-page .race-condition-card .race-select.ant-select .ant-select-selector {
+    background: #0b3d37 !important;
+    border-color: rgba(46, 196, 182, .28) !important;
+    color: #ffffff !important;
+}
+
+.race-detail-page .race-condition-select.ant-select,
+.race-detail-page .race-condition-select-root.ant-select {
+    background: #0b3d37 !important;
+}
+
+.race-detail-page .race-condition-select.ant-select .ant-select-selector,
+.race-detail-page .race-condition-select.ant-select-outlined .ant-select-selector,
+.race-detail-page .race-condition-select.ant-select-single .ant-select-selector,
+.race-detail-page .race-condition-select-root.ant-select .ant-select-selector,
+.race-detail-page .race-condition-select-root.ant-select-outlined .ant-select-selector,
+.race-detail-page .race-condition-select-root.ant-select-single .ant-select-selector {
+    background: #0b3d37 !important;
+    background-color: #0b3d37 !important;
+    border: 1px solid rgba(46, 196, 182, .45) !important;
+    outline: 0 !important;
+    color: #eafffb !important;
+    box-shadow: none !important;
+}
+
+.race-detail-page .race-condition-select.ant-select-focused .ant-select-selector,
+.race-detail-page .race-condition-select-root.ant-select-focused .ant-select-selector {
+    background: #0b3d37 !important;
+    background-color: #0b3d37 !important;
+    border: 1px solid #20c9ab !important;
+    box-shadow: 0 0 0 2px rgba(32, 201, 171, .18) !important;
+}
+
+.race-detail-page .race-condition-select .ant-select-selector::before,
+.race-detail-page .race-condition-select .ant-select-selector::after,
+.race-detail-page .race-condition-select-root .ant-select-selector::before,
+.race-detail-page .race-condition-select-root .ant-select-selector::after {
+    border-color: rgba(46, 196, 182, .45) !important;
+}
+
+.race-detail-page .race-condition-select.ant-select .ant-select-selection-search,
+.race-detail-page .race-condition-select.ant-select .ant-select-selection-search-input,
+.race-detail-page .race-condition-select-root.ant-select .ant-select-selection-search,
+.race-detail-page .race-condition-select-root.ant-select .ant-select-selection-search-input {
+    background: transparent !important;
+    color: #eafffb !important;
+}
+
+.race-detail-page .race-condition-card .race-select.ant-select .ant-select-selection-item,
+.race-detail-page .race-condition-card .race-select.ant-select .ant-select-selection-placeholder,
+.race-detail-page .race-condition-card .race-select.ant-select .ant-select-arrow {
+    color: #eafffb !important;
+}
+
+.dark-select.ant-select-dropdown,
+.dark-select.ant-select-dropdown .ant-select-item {
+    background: #0b3d37 !important;
+}
+
+.dark-select.ant-select-dropdown .ant-select-item-option-content {
+    color: #eafffb !important;
+}
+
+.dark-select.ant-select-dropdown .ant-select-item-option-active:not(.ant-select-item-option-disabled) {
+    background: rgba(32, 201, 171, .22) !important;
+}
+
+.dark-select.ant-select-dropdown .ant-select-item-option-selected:not(.ant-select-item-option-disabled) {
+    background: #0f766e !important;
+    color: #ffffff !important;
+}
+
+.race-detail-page .race-condition-card .race-input-number.ant-input-number {
+    background: #0b3d37 !important;
+    border-color: rgba(46, 196, 182, .28) !important;
+}
+
+.race-detail-page .race-condition-card .race-speed-unit.ant-btn,
+.race-detail-page .race-condition-card .race-speed-unit.ant-btn:disabled {
+    background: #0b3d37 !important;
+    border-color: rgba(46, 196, 182, .45) !important;
+    color: #d9fffb !important;
+    cursor: default;
+}
+
+.race-detail-page .race-table .ant-table-row,
+.race-detail-page .race-table .ant-table-cell {
+    transition: none !important;
+}
+
+.review-modal .review-result-select.ant-select .ant-select-selector,
+.review-modal .review-result-select.ant-select-outlined .ant-select-selector,
+.review-modal .review-result-select.ant-select-single .ant-select-selector,
+.race-detail-page .review-result-select.ant-select .ant-select-selector,
+.race-detail-page .review-result-select.ant-select-outlined .ant-select-selector,
+.race-detail-page .review-result-select.ant-select-single .ant-select-selector {
+    background: #dffaf3 !important;
+    background-color: #dffaf3 !important;
+    border: 1px solid rgba(20, 184, 166, .55) !important;
+    color: #0f4f48 !important;
+    box-shadow: none !important;
+}
+
+.review-modal .review-result-select.ant-select .ant-select-selection-item,
+.review-modal .review-result-select.ant-select .ant-select-arrow,
+.race-detail-page .review-result-select.ant-select .ant-select-selection-item,
+.race-detail-page .review-result-select.ant-select .ant-select-arrow {
+    color: #0f4f48 !important;
+}
+
+.review-modal .review-result-select.ant-select-disabled .ant-select-selector,
+.race-detail-page .review-result-select.ant-select-disabled .ant-select-selector {
+    background: #0f4f48 !important;
+    background-color: #0f4f48 !important;
+    border: 1px solid rgba(217, 255, 251, .55) !important;
+    color: #eafffb !important;
+    opacity: 1 !important;
+}
+
+.review-modal .review-result-select.ant-select-disabled .ant-select-selection-item,
+.review-modal .review-result-select.ant-select-disabled .ant-select-arrow,
+.race-detail-page .review-result-select.ant-select-disabled .ant-select-selection-item,
+.race-detail-page .review-result-select.ant-select-disabled .ant-select-arrow {
+    color: #eafffb !important;
+}
+
+.review-modal .review-result-select.ant-select-disabled,
+.review-modal .review-result-select.ant-select-disabled *,
+.race-detail-page .review-result-select.ant-select-disabled,
+.race-detail-page .review-result-select.ant-select-disabled * {
+    opacity: 1 !important;
+}
+
+.review-modal .review-result-select-locked.ant-select,
+.race-detail-page .review-result-select-locked.ant-select {
+    pointer-events: none;
+}
+
+.review-modal .review-result-select-locked.ant-select .ant-select-selector,
+.race-detail-page .review-result-select-locked.ant-select .ant-select-selector {
+    background: #0f4f48 !important;
+    background-color: #0f4f48 !important;
+    border: 1px solid rgba(217, 255, 251, .65) !important;
+    color: #ffffff !important;
+}
+
+.review-modal .review-result-select-locked.ant-select .ant-select-selection-item,
+.review-modal .review-result-select-locked.ant-select .ant-select-arrow,
+.review-modal .review-result-select-locked.ant-select .ant-select-selection-search-input,
+.race-detail-page .review-result-select-locked.ant-select .ant-select-selection-item,
+.race-detail-page .review-result-select-locked.ant-select .ant-select-arrow,
+.race-detail-page .review-result-select-locked.ant-select .ant-select-selection-search-input {
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+    opacity: 1 !important;
+}
+
+.review-result-select-dropdown.ant-select-dropdown {
+    background: #f7fffc !important;
+    border: 1px solid rgba(20, 184, 166, .28) !important;
+}
+
+.review-result-select-dropdown.ant-select-dropdown .ant-select-item {
+    background: transparent !important;
+    color: #0f4f48 !important;
+}
+
+.review-result-select-dropdown.ant-select-dropdown .ant-select-item-option-active {
+    background: #d9f9f1 !important;
+}
+
+.review-result-select-dropdown.ant-select-dropdown .ant-select-item-option-selected {
+    background: #14b8a6 !important;
+    color: #ffffff !important;
 }

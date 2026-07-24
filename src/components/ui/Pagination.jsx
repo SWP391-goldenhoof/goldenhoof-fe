@@ -14,17 +14,17 @@ export default function Pagination({
         onClick={() => onChange(page - 1)}
         disabled={page <= 1}
       >
-        ← Trước
+        ← Before
       </button>
       <span>
-        Trang <strong>{page}</strong> / {totalPages}
+        Page <strong>{page}</strong> / {totalPages}
       </span>
       <button
         type="button"
         onClick={() => onChange(page + 1)}
         disabled={page >= totalPages}
       >
-        Sau →
+        After →
       </button>
     </nav>
   );

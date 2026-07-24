@@ -19,6 +19,7 @@ import {
   updateReward,
   deleteReward,
 } from "../../api/services/reward.service";
+import { useAdminTableFixedColumns } from "../../hooks/useAdminTableFixedColumns";
 
 const { Text, Title } = Typography;
 
@@ -88,11 +89,15 @@ function RewardManagement() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedCondition, setSelectedCondition] = useState(null);
   const [selectedRewardType, setSelectedRewardType] = useState(null);
+  const shouldFixColumns = useAdminTableFixedColumns();
 
-  async function loadRewards() {
+  async function loadRewards(
+    rewardType = selectedRewardType,
+    conditionType = selectedCondition,
+  ) {
     setIsLoading(true);
     try {
-      const response = await getRewards();
+      const response = await getRewards(rewardType, conditionType);
       setRewards(resolveList(response).map(normalizeReward));
     } catch (error) {
       message.error(error?.message || "Failed to load reward configurations");
@@ -101,17 +106,19 @@ function RewardManagement() {
     }
   }
 
-  const filteredRewards = useMemo(() => {
-    return rewards.filter((reward) => {
-      const matchCondition = selectedCondition
-        ? reward.conditionType === selectedCondition
-        : true;
-      const matchType = selectedRewardType
-        ? reward.rewardType === selectedRewardType
-        : true;
-      return matchCondition && matchType;
-    });
-  }, [rewards, selectedCondition, selectedRewardType]);
+  // const filteredRewards = useMemo(() => {
+  //   return rewards.filter((reward) => {
+  //     const matchCondition = selectedCondition
+  //       ? reward.conditionType === selectedCondition
+  //       : true;
+  //     const matchType = selectedRewardType
+  //       ? reward.rewardType === selectedRewardType
+  //       : true;
+  //     return matchCondition && matchType;
+  //   });
+  // }, [rewards, selectedCondition, selectedRewardType]);
+
+  const filteredRewards = useMemo(() => rewards, [rewards]);
 
   useEffect(() => {
     loadRewards();
@@ -158,7 +165,7 @@ function RewardManagement() {
       }
 
       setIsModalOpen(false);
-      loadRewards();
+      loadRewards(selectedRewardType || "", selectedCondition || "");
     } catch (error) {
       message.error(error?.message || "Operation failed");
     } finally {
@@ -181,7 +188,7 @@ function RewardManagement() {
       {
         title: "Reward Title",
         dataIndex: "title",
-        fixed: "left",
+        fixed: shouldFixColumns ? "left" : undefined,
         width: 220,
         render: (value) => <Text strong>{value}</Text>,
       },
@@ -220,7 +227,7 @@ function RewardManagement() {
       {
         title: "Actions",
         key: "actions",
-        fixed: "right",
+        fixed: shouldFixColumns ? "right" : undefined,
         width: 160,
         render: (_, record) => (
           <Space>
@@ -246,7 +253,7 @@ function RewardManagement() {
         ),
       },
     ],
-    [rewards],
+    [rewards, shouldFixColumns],
   );
 
   return (
@@ -336,20 +343,28 @@ function RewardManagement() {
         </div>
         <div className="user-management-actions">
           <Select
-            placeholder="Filter by condition"
+            placeholder="Condition"
             allowClear
             style={{ width: 170 }}
-            onChange={(val) => setSelectedCondition(val)}
+            onChange={(val) => {
+              const condition = val || "";
+              setSelectedCondition(condition);
+              loadRewards(selectedRewardType || "", condition);
+            }}
           >
             <Select.Option value="MILESTONE">MILESTONE</Select.Option>
             <Select.Option value="SHOP">SHOP</Select.Option>
           </Select>
 
           <Select
-            placeholder="Filter by reward type"
+            placeholder="Reward Type"
             allowClear
             style={{ width: 170 }}
-            onChange={(val) => setSelectedRewardType(val)}
+            onChange={(val) => {
+              const rewardType = val || "";
+              setSelectedRewardType(rewardType);
+              loadRewards(rewardType, selectedCondition || "");
+            }}
           >
             <Select.Option value="POINTS">POINTS</Select.Option>
             {/* <Select.Option value="AVATAR_FRAME">AVATAR FRAME</Select.Option> */}
@@ -360,7 +375,12 @@ function RewardManagement() {
           <Button type="primary" onClick={openCreateModal}>
             Create New Reward
           </Button>
-          <Button className="user-management-refresh" onClick={loadRewards}>
+          <Button
+            className="user-management-refresh"
+            onClick={() =>
+              loadRewards(selectedRewardType || "", selectedCondition || "")
+            }
+          >
             Refresh
           </Button>
         </div>

@@ -194,7 +194,7 @@ export default function RefereeDashboard() {
   ];
 
   return (
-    <div className="dashboard-page">
+    <div className="referee-dashboard-page dashboard-page">
       <Space
         direction="vertical"
         size={28}

@@ -18,7 +18,10 @@ import {
 } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
 import { getMyMoneyHistory } from "../api/services/moneyTransaction.service";
+
+dayjs.extend(utc);
 
 const { Text, Title, Paragraph } = Typography;
 
@@ -195,7 +198,7 @@ export default function MoneyTransactionHistory() {
       width: 180,
       render: (date) => (
         <Text style={{ color: "rgba(244, 255, 251, 0.5)" }}>
-          {date ? dayjs(date).format("YYYY-MM-DD HH:mm:ss") : "N/A"}
+          {date ? dayjs.utc(date).format("YYYY-MM-DD HH:mm:ss") : "N/A"}
         </Text>
       ),
     },

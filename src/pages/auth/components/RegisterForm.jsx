@@ -121,7 +121,7 @@ export default function RegisterForm() {
     const payload = {
       ...values,
       dateOfBirth: values.dateOfBirth?.format(
-        values.role === "Referee" ? "DD/MM/YYYY" : "YYYY/MM/DD",
+        values.role === "Referee" ? "DD/MM/YYYY" : "DD/MM/YYYY",
       ),
     };
 
@@ -726,7 +726,9 @@ export default function RegisterForm() {
                 <Radio.Button value="Spectator">Spectator</Radio.Button>
                 <Radio.Button value="HorseOwner">Horse Owner</Radio.Button>
                 <Radio.Button value="Jockey">Jockey</Radio.Button>
-                <Radio.Button value="Referee">Referee</Radio.Button>
+                <Radio.Button value="Referee" disabled>
+                  Referee
+                </Radio.Button>
               </Radio.Group>
             </Form.Item>
 

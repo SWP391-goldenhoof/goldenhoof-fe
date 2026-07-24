@@ -23,6 +23,8 @@ import { useEffect, useState } from "react";
 
 import { getHorseById } from "../../api/services/horse.service";
 
+import "./RefereeHorseDetailModal.css";
+
 const { Title, Text } = Typography;
 
 function horseStatusColor(status) {
@@ -77,54 +79,64 @@ export default function RefereeHorseDetailModal({
 
     return (
         <Modal
-            title="🐎 Horse Profile"
+            centered
+            className="horse-modal"
+            title="Horse Profile"
             open={open}
             onCancel={onClose}
             footer={null}
-            width={900}
+            width={950}
             destroyOnClose
         >
             {loading ? (
-                <div
-                    style={{
-                        textAlign: "center",
-                        padding: 80,
-                    }}
-                >
+                <div className="horse-loading">
                     <Spin size="large" />
                 </div>
             ) : !horse ? (
-                <Empty description="Horse not found" />
+                <div className="horse-empty">
+                    <Empty description="Horse not found" />
+                </div>
             ) : (
                 <>
                     <Card
                         bordered={false}
-                        style={{
-                            borderRadius: 16,
-                            marginBottom: 20,
-                        }}
+                        className="horse-hero-card"
                     >
-                        <Row gutter={32} align="middle">
-                            <Col>
+                        <Row
+                            gutter={[32, 32]}
+                            align="middle"
+                        >
+                            <Col
+                                xs={24}
+                                md={6}
+                                style={{ textAlign: "center" }}
+                            >
                                 <Avatar
-                                    size={150}
+                                    icon={<UserOutlined />}
+                                    size={170}
                                     shape="square"
                                     src={horse.imageUrl}
+                                    className="horse-avatar"
                                 />
                             </Col>
 
-                            <Col flex="auto">
+                            <Col
+                                xs={24}
+                                md={18}
+                            >
                                 <Title
                                     level={2}
-                                    style={{
-                                        marginBottom: 8,
-                                    }}
+                                    className="horse-name"
                                 >
                                     {horse.name}
                                 </Title>
 
-                                <Space wrap>
+                                <Space
+                                    wrap
+                                    size={12}
+                                >
                                     <Tag
+                                        className="horse-status-tag"
                                         color={horseStatusColor(
                                             horse.horseStatus
                                         )}
@@ -132,16 +144,17 @@ export default function RefereeHorseDetailModal({
                                         {horse.horseStatus}
                                     </Tag>
 
-                                    <Tag color="gold">
+                                    <Tag className="horse-color-tag">
                                         {horse.color}
                                     </Tag>
                                 </Space>
 
-                                <Divider />
+                                <Divider className="horse-divider" />
 
                                 <Row gutter={16}>
                                     <Col span={8}>
                                         <Statistic
+                                            className="horse-stat"
                                             title="Weight"
                                             value={horse.weight}
                                             suffix="kg"
@@ -150,6 +163,7 @@ export default function RefereeHorseDetailModal({
 
                                     <Col span={8}>
                                         <Statistic
+                                            className="horse-stat"
                                             title="Height"
                                             value={horse.height}
                                             suffix="cm"
@@ -158,6 +172,7 @@ export default function RefereeHorseDetailModal({
 
                                     <Col span={8}>
                                         <Statistic
+                                            className="horse-stat"
                                             title="Win Rate"
                                             value={horse.winRate ?? 0}
                                             suffix="%"
@@ -168,26 +183,31 @@ export default function RefereeHorseDetailModal({
                         </Row>
                     </Card>
 
-                    <Row gutter={16}>
-                        <Col span={12}>
+                    <Row gutter={[24, 24]}>
+                        <Col
+                            xs={24}
+                            md={12}
+                        >
                             <Card
                                 title="Horse Information"
                                 bordered={false}
-                                style={{
-                                    borderRadius: 16,
-                                }}
+                                className="horse-info-card"
                             >
                                 <Descriptions
-                                    column={1}
+                                    className="horse-description"
+                                    bordered
                                     size="middle"
                                 >
                                     <Descriptions.Item label="Horse ID">
-                                        <Text copyable>
+                                        <Text
+                                            copyable
+                                            className="horse-id"
+                                        >
                                             {horse._id}
                                         </Text>
                                     </Descriptions.Item>
 
-                                    <Descriptions.Item label="Horse Name">
+                                    <Descriptions.Item label="Horse Name" ellipsis>
                                         {horse.name}
                                     </Descriptions.Item>
 
@@ -205,6 +225,7 @@ export default function RefereeHorseDetailModal({
 
                                     <Descriptions.Item label="Status">
                                         <Tag
+                                            className="horse-status-tag"
                                             color={horseStatusColor(
                                                 horse.horseStatus
                                             )}
@@ -216,16 +237,18 @@ export default function RefereeHorseDetailModal({
                             </Card>
                         </Col>
 
-                        <Col span={12}>
+                        <Col
+                            xs={24}
+                            md={12}
+                        >
                             <Card
                                 title="Performance"
                                 bordered={false}
-                                style={{
-                                    borderRadius: 16,
-                                }}
+                                className="horse-info-card"
                             >
                                 <Descriptions
-                                    column={1}
+                                    className="horse-description"
+                                    bordered
                                     size="middle"
                                 >
                                     <Descriptions.Item
@@ -255,11 +278,11 @@ export default function RefereeHorseDetailModal({
                                             </>
                                         }
                                     >
-                                        {horse.ownerName}
+                                        {horse.ownerName || "-"}
                                     </Descriptions.Item>
 
                                     <Descriptions.Item label="Owner Email">
-                                        {horse.ownerEmail}
+                                        {horse.ownerEmail || "-"}
                                     </Descriptions.Item>
                                 </Descriptions>
                             </Card>

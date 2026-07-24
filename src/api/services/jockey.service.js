@@ -3,6 +3,10 @@ import { JOCKEY_INVITATION_ENDPOINTS } from "../endpoints/jockeyInvitation.endpo
 import { SCHEDULE_ENDPOINTS } from "../endpoints/schedule.endpoint";
 import { getProfile } from "./auth.service";
 import { getUserById } from "./user.service";
+import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
+
+dayjs.extend(utc);
 
 const delay = (value, ms = 180) =>
   new Promise((resolve) => {
@@ -12,7 +16,9 @@ const delay = (value, ms = 180) =>
 function unwrapData(response) {
   const data = response?.data;
 
-  return data?.data || data?.result || data?.invitation || data?.contract || data;
+  return (
+    data?.data || data?.result || data?.invitation || data?.contract || data
+  );
 }
 
 function unwrapCollection(response) {
@@ -102,8 +108,16 @@ function normalizeUpcomingSchedule(schedule = {}, index = 0) {
       ["raceCourseName"],
       pickFirstValue(raceCourse, ["name"], "N/A"),
     ),
-    totalSlots: pickFirstValue(schedule, ["totalSlots"], pickFirstValue(race, ["totalSlots"], 0)),
-    filledSlots: pickFirstValue(schedule, ["filledSlots"], pickFirstValue(race, ["filledSlots"], 0)),
+    totalSlots: pickFirstValue(
+      schedule,
+      ["totalSlots"],
+      pickFirstValue(race, ["totalSlots"], 0),
+    ),
+    filledSlots: pickFirstValue(
+      schedule,
+      ["filledSlots"],
+      pickFirstValue(race, ["filledSlots"], 0),
+    ),
     availableSlots: pickFirstValue(
       schedule,
       ["availableSlots"],
@@ -144,7 +158,7 @@ function normalizeUpcomingSchedule(schedule = {}, index = 0) {
       pickFirstValue(
         race,
         ["date", "raceDate"],
-        hasValidStartTime ? parsedStartTime.toLocaleDateString("vi-VN") : "N/A",
+        hasValidStartTime ? dayjs.utc(startTime).format("DD/MM/YYYY") : "N/A",
       ),
     ),
     time: pickFirstValue(
@@ -154,10 +168,7 @@ function normalizeUpcomingSchedule(schedule = {}, index = 0) {
         race,
         ["time"],
         hasValidStartTime
-          ? parsedStartTime.toLocaleTimeString("vi-VN", {
-              hour: "2-digit",
-              minute: "2-digit",
-            })
+          ? dayjs.utc(startTime).format("HH:mm")
           : "N/A",
       ),
     ),
@@ -179,7 +190,11 @@ function normalizeUpcomingSchedule(schedule = {}, index = 0) {
     distance: pickFirstValue(
       schedule,
       ["distance"],
-      pickFirstValue(race, ["distance"], pickFirstValue(raceCourse, ["distance"], "N/A")),
+      pickFirstValue(
+        race,
+        ["distance"],
+        pickFirstValue(raceCourse, ["distance"], "N/A"),
+      ),
     ),
     surface: pickFirstValue(
       schedule,
@@ -374,8 +389,20 @@ let jockeyData = {
     },
   ],
   standings: [
-    { rank: 1, jockey: "Liam O'Connor", wins: 120, points: 1420, prize: 520000 },
-    { rank: 2, jockey: "Sophia Martinez", wins: 98, points: 1280, prize: 460000 },
+    {
+      rank: 1,
+      jockey: "Liam O'Connor",
+      wins: 120,
+      points: 1420,
+      prize: 520000,
+    },
+    {
+      rank: 2,
+      jockey: "Sophia Martinez",
+      wins: 98,
+      points: 1280,
+      prize: 460000,
+    },
     { rank: 7, jockey: "Demo Jockey", wins: 64, points: 860, prize: 420000 },
     { rank: 8, jockey: "Noah Henderson", wins: 60, points: 820, prize: 360000 },
   ],
@@ -402,7 +429,13 @@ export async function getJockeyDashboard() {
 
 export async function getJockeyProfile() {
   const profile = await getProfile();
-  const userIds = pickExistingValues(profile, ["id", "_id", "userId", "accountId", "profileId"]);
+  const userIds = pickExistingValues(profile, [
+    "id",
+    "_id",
+    "userId",
+    "accountId",
+    "profileId",
+  ]);
 
   if (userIds.length === 0) return profile || {};
 
@@ -423,17 +456,23 @@ export async function getJockeyProfile() {
 }
 
 export async function getJockeyInvitations() {
-  const response = await apiClient.get(JOCKEY_INVITATION_ENDPOINTS.MY_INVITATIONS, {
-    includeAuth: true,
-  });
+  const response = await apiClient.get(
+    JOCKEY_INVITATION_ENDPOINTS.MY_INVITATIONS,
+    {
+      includeAuth: true,
+    },
+  );
 
   return unwrapCollection(response);
 }
 
 export async function getJockeyInvitationById(invitationId) {
-  const response = await apiClient.get(JOCKEY_INVITATION_ENDPOINTS.DETAIL(invitationId), {
-    includeAuth: true,
-  });
+  const response = await apiClient.get(
+    JOCKEY_INVITATION_ENDPOINTS.DETAIL(invitationId),
+    {
+      includeAuth: true,
+    },
+  );
 
   return unwrapData(response);
 }
@@ -453,9 +492,42 @@ export async function respondToJockeyInvitation(invitationId, status) {
 }
 
 export async function getJockeyInvitationContract(invitationId) {
-  const response = await apiClient.get(JOCKEY_INVITATION_ENDPOINTS.CONTRACT(invitationId), {
-    includeAuth: true,
-  });
+  const response = await apiClient.get(
+    JOCKEY_INVITATION_ENDPOINTS.CONTRACT(invitationId),
+    {
+      includeAuth: true,
+    },
+  );
+
+  return unwrapData(response);
+}
+
+export async function getAllContracts(params = {}) {
+  const response = await apiClient.get(
+    JOCKEY_INVITATION_ENDPOINTS.ALL_CONTRACTS,
+    {
+      params,
+      includeAuth: true,
+    },
+  );
+
+  return unwrapCollection(response);
+}
+
+export async function getContractDetailByInvitationId(invitationId) {
+  const response = await apiClient.get(
+    JOCKEY_INVITATION_ENDPOINTS.CONTRACT_DETAIL(invitationId),
+    { includeAuth: true },
+  );
+  return response.data;
+}
+
+export async function completeContract(contractId) {
+  const response = await apiClient.patch(
+    JOCKEY_INVITATION_ENDPOINTS.COMPLETE_CONTRACT(contractId),
+    {},
+    { includeAuth: true },
+  );
 
   return unwrapData(response);
 }
@@ -469,4 +541,26 @@ export async function getJockeyRaceSchedule() {
     schedules: unwrapCollection(response).map(normalizeUpcomingSchedule),
     standings: [],
   };
+}
+
+// Admin phê duyệt hoặc từ chối đơn tố cáo vi phạm hợp đồng
+export async function processBreachReportByAdmin(
+  breachId,
+  { isApproved, adminReason },
+) {
+  const response = await apiClient.patch(
+    JOCKEY_INVITATION_ENDPOINTS.PROCESS_BREACH(breachId),
+    { isApproved, adminReason },
+    { includeAuth: true },
+  );
+  return unwrapData(response);
+}
+
+// Lấy thông tin đơn tố cáo/vi phạm theo ID hợp đồng
+export async function getBreachByContractId(contractId) {
+  const response = await apiClient.get(
+    JOCKEY_INVITATION_ENDPOINTS.GET_BREACH_BY_CONTRACT(contractId),
+    { includeAuth: true },
+  );
+  return unwrapData(response);
 }

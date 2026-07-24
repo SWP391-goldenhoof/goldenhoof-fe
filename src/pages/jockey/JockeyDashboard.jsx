@@ -1,10 +1,37 @@
 import { useEffect, useMemo, useState } from "react";
 import { Alert, Button, Card, Col, Row, Space, Statistic, Table, Tag, Typography } from "antd";
 import { Link } from "react-router-dom";
+import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
+import WorkspaceHeader from "../../components/ui/WorkspaceHeader";
 import { getJockeyDashboard } from "../../api/services/jockey.service";
+
+dayjs.extend(utc);
 
 function formatMoney(value) {
   return `$${Number(value || 0).toLocaleString()}`;
+}
+
+function formatAssignmentSchedule(record) {
+  const date = String(record?.date || "").trim();
+  const time = String(record?.time || "").trim();
+  const venue = String(record?.venue || "").trim();
+  const parts = [];
+
+  if (date && date !== "N/A") {
+    const parsedDate = dayjs.utc(date);
+    parts.push(parsedDate.isValid() ? parsedDate.format("DD/MM/YYYY") : date);
+  }
+
+  if (time && time !== "N/A") {
+    parts.push(time);
+  }
+
+  if (venue && venue !== "N/A") {
+    parts.push(venue);
+  }
+
+  return parts.length ? parts.join(" - ") : "N/A";
 }
 
 export default function JockeyDashboard() {
@@ -35,7 +62,7 @@ export default function JockeyDashboard() {
         <Space direction="vertical" size={0}>
           <Typography.Text strong>{value}</Typography.Text>
           <Typography.Text type="secondary">
-            {record.date} {record.time} - {record.venue}
+            {formatAssignmentSchedule(record)}
           </Typography.Text>
         </Space>
       ),
@@ -50,6 +77,12 @@ export default function JockeyDashboard() {
 
   return (
     <Space direction="vertical" size={16} style={{ width: "100%" }}>
+      <WorkspaceHeader
+        kicker="RACE OVERVIEW"
+        title="Jockey Workspace"
+        subtitle="Manage invitations, assignments, and race performance"
+      />
+
       {errorMessage && <Alert type="warning" showIcon message={errorMessage} />}
 
       <Row gutter={[16, 16]}>

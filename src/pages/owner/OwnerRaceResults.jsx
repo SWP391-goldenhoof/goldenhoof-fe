@@ -1,22 +1,17 @@
 import { useEffect, useState } from "react";
+import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
 import { Alert, Card, Col, Row, Space, Statistic, Table, Tag, Typography } from "antd";
+import WorkspaceHeader from "../../components/ui/WorkspaceHeader";
 import { getOwnerRaceCenter } from "../../api/services/owner.service";
 import RaceHistoryCard from "../../components/races/RaceHistoryCard";
 
+dayjs.extend(utc);
+
 function formatDateTime(value) {
   if (!value) return "N/A";
-
-  const parsed = new Date(value);
-
-  if (Number.isNaN(parsed.getTime())) return String(value);
-
-  return parsed.toLocaleString("vi-VN", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  const date = dayjs.utc(value);
+  return date.isValid() ? date.format("HH:mm DD/MM/YYYY") : String(value);
 }
 
 export default function OwnerRaceResults() {
@@ -85,6 +80,12 @@ export default function OwnerRaceResults() {
 
   return (
     <Space direction="vertical" size={16} className="owner-page-stack">
+      <WorkspaceHeader
+        kicker="RACE CENTER"
+        title="Race Results"
+        subtitle="Track upcoming races, assignments, and owner history"
+      />
+
       {errorMessage && <Alert type="warning" showIcon message={errorMessage} />}
 
       <Row gutter={[16, 16]}>
