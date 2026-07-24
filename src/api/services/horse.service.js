@@ -50,8 +50,14 @@ export async function getAdminHorseStats() {
   return unwrapData(response);
 }
 
-export async function getMyHorses() {
-  const response = await apiClient.get(HORSE_ENDPOINTS.MY_HORSES, authConfig());
+export async function getMyHorses(params = {}) {
+  const response = await apiClient.get(
+    HORSE_ENDPOINTS.MY_HORSES,
+    {
+      ...authConfig(),
+      params,
+    },
+  );
 
   return unwrapCollection(response);
 }

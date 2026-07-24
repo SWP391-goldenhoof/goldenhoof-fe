@@ -40,10 +40,14 @@ export async function getAdminBetStats() {
 }
 
 // 3. API Lấy toàn bộ các bet đặt cược của tài khoản hiện tại
-export async function getMyBets() {
-  const response = await apiClient.get(BET_ENDPOINTS.MY_BET, {
-    includeAuth: true,
-  });
+export async function getMyBets(params = {}) {
+  const response = await apiClient.get(
+    BET_ENDPOINTS.MY_BET,
+    {
+      includeAuth: true,
+      params,
+    },
+  );
 
   return unwrapData(response);
 }

@@ -67,16 +67,27 @@ export default function OwnerHorses() {
   const [uploadingHorseId, setUploadingHorseId] = useState("");
   const [uploadingEditImage, setUploadingEditImage] = useState(false);
   const [keyword, setKeyword] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const editImageUrl = Form.useWatch("imageUrl", form);
 
-  const loadHorses = useCallback(async () => {
+  const loadHorses = useCallback(async (search = "", status = "") => {
     setLoading(true);
     setErrorMessage("");
 
     try {
-      const data = await getMyHorses();
+      const params = {};
+
+      if (search.trim()) {
+        params.search = search.trim();
+      }
+
+      if (status) {
+        params.status = status;
+      }
+
+      const data = await getMyHorses(params);
+
       setHorses(horseCollectionFrom(data));
     } catch (error) {
       console.error(error);
@@ -88,8 +99,12 @@ export default function OwnerHorses() {
   }, []);
 
   useEffect(() => {
-    loadHorses();
-  }, [loadHorses]);
+    const timer = setTimeout(() => {
+      loadHorses(keyword, statusFilter);
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [keyword, statusFilter, loadHorses]);
 
   useEffect(() => {
     if (searchParams.get("create") === "1") {
@@ -99,25 +114,6 @@ export default function OwnerHorses() {
   }, [navigate, searchParams, setSearchParams]);
 
   const rows = useMemo(() => horses.map(normalizeHorse), [horses]);
-
-  const filteredRows = useMemo(() => {
-    const query = keyword.trim().toLowerCase();
-
-    return rows.filter((horse) => {
-      const matchesKeyword =
-        !query ||
-        [horse.name, horse.breed, horse.color, horse.ownerName]
-          .join(" ")
-          .toLowerCase()
-          .includes(query);
-      const matchesStatus =
-        statusFilter === "all" ||
-        String(horse.status).toLowerCase() ===
-          String(statusFilter).toLowerCase();
-
-      return matchesKeyword && matchesStatus;
-    });
-  }, [keyword, rows, statusFilter]);
 
   const horseStats = useMemo(() => {
     const total = rows.length;
@@ -302,7 +298,7 @@ export default function OwnerHorses() {
       setModalOpen(false);
       setEditingHorse(null);
       form.resetFields();
-      await loadHorses();
+      await loadHorses(keyword, statusFilter);
     } catch (error) {
       console.error(error);
       messageApi.error(error.message || "Could not save horse.");
@@ -320,7 +316,7 @@ export default function OwnerHorses() {
     try {
       await deleteHorse(horse.id);
       messageApi.success("Horse deleted");
-      await loadHorses();
+      await loadHorses(keyword, statusFilter);
     } catch (error) {
       console.error(error);
       messageApi.error(error.message || "Could not delete horse.");
@@ -548,7 +544,7 @@ export default function OwnerHorses() {
           className="owner-workspace-refresh"
           icon={<ReloadOutlined />}
           loading={loading}
-          onClick={loadHorses}
+          onClick={() => loadHorses(keyword, statusFilter)}
         >
           Refresh
         </Button>
@@ -590,18 +586,20 @@ export default function OwnerHorses() {
               className="owner-filter-search"
               value={keyword}
               onChange={(event) => setKeyword(event.target.value)}
-              onSearch={setKeyword}
             />
             <Select
               value={statusFilter}
               className="owner-status-select"
               onChange={setStatusFilter}
               options={[
-                { value: "all", label: "All status" },
+                { value: "", label: "All status" },
                 ...HORSE_STATUS_OPTIONS,
               ]}
             />
-            <Button icon={<ReloadOutlined />} onClick={loadHorses}>
+            <Button
+              icon={<ReloadOutlined />}
+              onClick={() => loadHorses(keyword, statusFilter)}
+            >
               Refresh
             </Button>
             <Link to="/owner/horses/register">
@@ -618,7 +616,7 @@ export default function OwnerHorses() {
             rowKey="id"
             loading={loading}
             columns={columns}
-            dataSource={filteredRows}
+            dataSource={rows}
             size="middle"
             pagination={{ pageSize: 5, showSizeChanger: false }}
             locale={{ emptyText: "No horses match the current filters" }}
@@ -628,10 +626,10 @@ export default function OwnerHorses() {
         <div className="owner-horse-mobile-list">
           {loading ? (
             <Skeleton active paragraph={{ rows: 4 }} />
-          ) : filteredRows.length === 0 ? (
+          ) : rows.length === 0 ? (
             <Empty description="No horses match the current filters" />
           ) : (
-            filteredRows.map((horse) => (
+            rows.map((horse) => (
               <article className="owner-horse-mobile-card" key={horse.id}>
                 <div className="owner-horse-mobile-main">
                   <Upload

@@ -57,6 +57,9 @@ export default function RefereeTournamentList() {
     const [statusFilter, setStatusFilter] =
         useState("");
 
+    const [tournamentLoading, setTournamentLoading] =
+        useState(false);
+
     // Tournament modal
     const [
         selectedTournament,
@@ -82,61 +85,43 @@ export default function RefereeTournamentList() {
         loadTournaments(statusFilter);
     }, [statusFilter]);
 
+    async function handleViewTournament(tournament) {
+        try {
+            setTournamentLoading(true);
+
+            const races =
+                await getRacesByTournament(tournament._id);
+
+            setSelectedTournament({
+                ...tournament,
+                races,
+            });
+
+            setTournamentModalOpen(true);
+        } catch (error) {
+            console.error(error);
+            message.error("Failed to load races");
+        } finally {
+            setTournamentLoading(false);
+        }
+    }
+
     async function loadTournaments(status = "") {
         setLoading(true);
 
         try {
-            const response =
-                await getTournaments();
+            const response = await getTournaments(
+                status ? { status } : {}
+            );
 
-            const tournamentList =
-                Array.isArray(response)
-                    ? response
-                    : response?.data || [];
+            const tournamentList = Array.isArray(response)
+                ? response
+                : response?.data || [];
 
-            const filteredTournamentList =
-                status
-                    ? tournamentList.filter(
-                        tournament =>
-                            tournament.status === status
-                    )
-                    : tournamentList;
-
-            const enrichedData =
-                await Promise.all(
-                    filteredTournamentList.map(
-                        async (tournament) => {
-                            try {
-                                const races =
-                                    await getRacesByTournament(
-                                        tournament._id
-                                    );
-
-                                return {
-                                    ...tournament,
-                                    races,
-                                };
-                            } catch (error) {
-                                console.error(
-                                    error
-                                );
-
-                                return {
-                                    ...tournament,
-                                    races: [],
-                                };
-                            }
-                        }
-                    )
-                );
-
-            setTournaments(enrichedData);
+            setTournaments(tournamentList);
         } catch (error) {
             console.error(error);
-
-            message.error(
-                "Failed to load tournaments"
-            );
+            message.error("Failed to load tournaments");
         } finally {
             setLoading(false);
         }
@@ -278,34 +263,6 @@ export default function RefereeTournamentList() {
         },
 
         {
-            title: "Race Names",
-            key: "races",
-            render: (_, record) => {
-                if (
-                    !record.races?.length
-                ) {
-                    return "-";
-                }
-
-                return (
-                    <Space wrap>
-                        {record.races.map(
-                            (race) => (
-                                <Tag
-                                    key={
-                                        race._id
-                                    }
-                                >
-                                    {race.name}
-                                </Tag>
-                            )
-                        )}
-                    </Space>
-                );
-            },
-        },
-
-        {
             title: "Time",
             key: "time",
             render: (_, record) => (
@@ -361,15 +318,7 @@ export default function RefereeTournamentList() {
             render: (_, record) => (
                 <Button
                     className="dashboard-table-btn"
-                    onClick={() => {
-                        setSelectedTournament(
-                            record
-                        );
-
-                        setTournamentModalOpen(
-                            true
-                        );
-                    }}
+                    onClick={() => handleViewTournament(record)}
                 >
                     View Detail
                 </Button>
@@ -617,66 +566,70 @@ export default function RefereeTournamentList() {
                         </Descriptions>
 
                         <div className="dashboard-divider" />
+                        {tournamentLoading ? (
+                            <Spin />
+                        ) : (
+                            <List
+                                header={
+                                    <Typography.Title
+                                        level={5}
+                                    >
+                                        Race List
+                                    </Typography.Title>
+                                }
+                                bordered
+                                dataSource={
+                                    selectedTournament.races ||
+                                    []
+                                }
 
-                        <List
-                            header={
-                                <Typography.Title
-                                    level={5}
-                                >
-                                    Race List
-                                </Typography.Title>
-                            }
-                            bordered
-                            dataSource={
-                                selectedTournament.races ||
-                                []
-                            }
-                            renderItem={(
-                                race
-                            ) => (
-                                <List.Item
-                                    actions={[
-                                        <Button
-                                            key="view"
-                                            className="dashboard-table-btn"
-                                            onClick={() =>
-                                                handleViewRace(
-                                                    race._id
-                                                )
+                                renderItem={(
+                                    race
+                                ) => (
+                                    <List.Item
+                                        actions={[
+                                            <Button
+                                                key="view"
+                                                className="dashboard-table-btn"
+                                                onClick={() =>
+                                                    handleViewRace(
+                                                        race._id
+                                                    )
+                                                }
+                                            >
+                                                View
+                                                Race
+                                                Detail
+                                            </Button>,
+                                        ]}
+                                    >
+                                        <List.Item.Meta
+                                            title={
+                                                <Typography.Text
+                                                    className="race-title"
+                                                >
+                                                    {race.name}
+                                                </Typography.Text>
                                             }
-                                        >
-                                            View
-                                            Race
-                                            Detail
-                                        </Button>,
-                                    ]}
-                                >
-                                    <List.Item.Meta
-                                        title={
-                                            <Typography.Text
-                                                className="race-title"
-                                            >
-                                                {race.name}
-                                            </Typography.Text>
-                                        }
-                                        description={
-                                            <Space
-                                                direction="vertical"
-                                                size={4}
-                                            >
-                                                <Tag color={statusColor[status]}>
-                                                    {race.status}
-                                                </Tag>
+                                            description={
+                                                <Space
+                                                    direction="vertical"
+                                                    size={4}
+                                                >
+                                                    <Tag color={statusColor[status]}>
+                                                        {race.status}
+                                                    </Tag>
 
-                                                <Text className="race-round">
-                                                    Round {race.round}
-                                                </Text>
-                                            </Space>
-                                        }
-                                    />
-                                </List.Item>
-                            )}
-                        />
+                                                    <Text className="race-round">
+                                                        Round {race.round}
+                                                    </Text>
+                                                </Space>
+                                            }
+                                        />
+                                    </List.Item>
+                                )}
+                            />
+                        )}
                     </>
                 )}
             </Modal>

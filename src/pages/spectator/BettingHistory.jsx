@@ -25,7 +25,6 @@ import { getHorses } from "../../api/services/horse.service";
 dayjs.extend(utc);
 
 const { Text, Title } = Typography;
-const { Search } = Input;
 
 function pick(source, keys, fallback = "") {
   for (const key of keys) {
@@ -76,7 +75,8 @@ function normalizeBet(item, index) {
 function statusColor(status) {
   const normalizedStatus = String(status).toUpperCase();
   if (normalizedStatus === "WIN") return "green";
-  if (normalizedStatus === "LOST" || normalizedStatus === "LOSE") return "red";
+  if (normalizedStatus === "LOSE") return "red";
+  if (normalizedStatus === "REFUNDED") return "blue";
   return "orange";
 }
 
@@ -97,7 +97,6 @@ export default function BettingHistory() {
 
   const [bets, setBets] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [searchKey, setSearchKey] = useState("");
   const [selectedStatus, setSelectedStatus] = useState(null);
 
   const [editingBet, setEditingBet] = useState(null);
@@ -116,12 +115,24 @@ export default function BettingHistory() {
     });
   }, [editingBet, form]);
 
-  async function loadMyBets() {
+  async function loadMyBets(result = selectedStatus) {
     setIsLoading(true);
+
     try {
-      const response = await getMyBets();
+      const params = {};
+
+      if (result) {
+        params.result = result;
+      }
+
+      const response = await getMyBets(params);
+
       const normalized = resolveList(response).map(normalizeBet);
-      normalized.sort((a, b) => new Date(b.placedAt) - new Date(a.placedAt));
+
+      normalized.sort(
+        (a, b) => new Date(b.placedAt) - new Date(a.placedAt),
+      );
+
       setBets(normalized);
     } catch (error) {
       messageApi.error(
@@ -148,28 +159,16 @@ export default function BettingHistory() {
     } catch (err) {
       console.error("Error loading horses map:", err);
     }
-    loadMyBets();
+    await loadMyBets();
   }
+
+  useEffect(() => {
+    loadMyBets(selectedStatus);
+  }, [selectedStatus]);
 
   useEffect(() => {
     initData();
   }, []);
-
-  const filteredBets = useMemo(() => {
-    return bets.filter((bet) => {
-      const matchStatus = selectedStatus ? bet.result === selectedStatus : true;
-
-      const rName = String(bet.raceName || "").toLowerCase();
-      const hName = String(bet.horseName || "").toLowerCase();
-      const bId = String(bet.id || "").toLowerCase();
-      const query = searchKey.toLowerCase();
-
-      const matchSearch = searchKey
-        ? rName.includes(query) || hName.includes(query) || bId.includes(query)
-        : true;
-      return matchStatus && matchSearch;
-    });
-  }, [bets, selectedStatus, searchKey]);
 
   async function openEditModal(record) {
     setEditingBet(record);
@@ -221,7 +220,7 @@ export default function BettingHistory() {
       messageApi.success("Bet updated successfully");
       setEditingBet(null);
       form.resetFields();
-      loadMyBets();
+      await loadMyBets(selectedStatus);
     } catch (error) {
       messageApi.error(error?.message || "Unable to update bet.");
     } finally {
@@ -440,26 +439,19 @@ export default function BettingHistory() {
             placeholder="Filter by result"
             allowClear
             style={{ width: 180 }}
-            onChange={(val) => setSelectedStatus(val)}
+            value={selectedStatus}
+            onChange={setSelectedStatus}
           >
             <Select.Option value="PENDING">PENDING</Select.Option>
             <Select.Option value="WIN">WIN</Select.Option>
-            <Select.Option value="LOST">LOST</Select.Option>
+            <Select.Option value="LOSE">LOSE</Select.Option>
+            <Select.Option value="REFUNDED">REFUNDED</Select.Option>
           </Select>
 
-          <Search
-            placeholder="Search by Race, Horse Name or Bet ID..."
-            allowClear
-            enterButton="Search"
-            size="middle"
-            style={{ flex: 1 }}
-            value={searchKey}
-            onChange={(e) => setSearchKey(e.target.value)}
-          />
           <Button
             type="default"
             style={{ fontWeight: 700 }}
-            onClick={loadMyBets}
+            onClick={() => loadMyBets(selectedStatus)}
             loading={isLoading}
           >
             Refresh
@@ -470,7 +462,7 @@ export default function BettingHistory() {
           <Table
             className="history-table"
             columns={columns}
-            dataSource={filteredBets}
+            dataSource={bets}
             loading={isLoading}
             pagination={{
               pageSize: 10,
